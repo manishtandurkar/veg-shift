@@ -1,0 +1,10 @@
+data/raw/
+data/output/
+models/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.ckpt
+*.pkl
+*.pt
+.claude/
