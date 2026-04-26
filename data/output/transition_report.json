@@ -1,0 +1,170 @@
+[
+  {
+    "city": "Ahmedabad",
+    "transition_year": 2004,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Ahmedabad",
+    "transition_year": 2014,
+    "from_zone": "Aw",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Ahmedabad",
+    "transition_year": 2019,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Bangalore",
+    "transition_year": 2004,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Chennai",
+    "transition_year": 2004,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Delhi",
+    "transition_year": 2004,
+    "from_zone": "Cwa",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Delhi",
+    "transition_year": 2011,
+    "from_zone": "Csa",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Delhi",
+    "transition_year": 2017,
+    "from_zone": "Cwa",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Delhi",
+    "transition_year": 2023,
+    "from_zone": "BSh",
+    "to_zone": "Cwa",
+    "years_confirmed": 2
+  },
+  {
+    "city": "Hyderabad",
+    "transition_year": 2022,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Jaipur",
+    "transition_year": 2003,
+    "from_zone": "BWh",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Jaipur",
+    "transition_year": 2011,
+    "from_zone": "Cwa",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Jaipur",
+    "transition_year": 2020,
+    "from_zone": "Csa",
+    "to_zone": "BSh",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Jaipur",
+    "transition_year": 2024,
+    "from_zone": "BSh",
+    "to_zone": "Csa",
+    "years_confirmed": 1
+  },
+  {
+    "city": "Kolkata",
+    "transition_year": 2004,
+    "from_zone": "Cwa",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Kolkata",
+    "transition_year": 2019,
+    "from_zone": "Cwa",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Lucknow",
+    "transition_year": 2010,
+    "from_zone": "BSh",
+    "to_zone": "Csa",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Lucknow",
+    "transition_year": 2013,
+    "from_zone": "Csa",
+    "to_zone": "Cwa",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Lucknow",
+    "transition_year": 2016,
+    "from_zone": "Cwa",
+    "to_zone": "Csa",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Lucknow",
+    "transition_year": 2019,
+    "from_zone": "Csa",
+    "to_zone": "Cwa",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Lucknow",
+    "transition_year": 2024,
+    "from_zone": "Cwa",
+    "to_zone": "Csa",
+    "years_confirmed": 1
+  },
+  {
+    "city": "Mumbai",
+    "transition_year": 2024,
+    "from_zone": "Aw",
+    "to_zone": "Am",
+    "years_confirmed": 1
+  },
+  {
+    "city": "Pune",
+    "transition_year": 2019,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 3
+  },
+  {
+    "city": "Pune",
+    "transition_year": 2024,
+    "from_zone": "BSh",
+    "to_zone": "Aw",
+    "years_confirmed": 1
+  }
+]

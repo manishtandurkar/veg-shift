@@ -26,10 +26,30 @@ The central output is a **Crop Viability Loss Event (CVLE):** a formally timesta
 ## 2. Datasets
 
 ### Dataset 1 — Kaggle Historical Climate Dataset
-**Role:** Primary atmospheric layer. Already available locally.
-**Contains:** Daily temperature (max, min, mean), rainfall, humidity, wind speed, sunshine hours for 10 Indian cities, 2000–2024.
+**Role:** Primary atmospheric layer.
+**Raw file:** `data/raw/climate/india_2000_2024_daily_weather.csv`
+**Pipeline file:** `data/processed/kaggle_climate.csv` (standardized by `pipeline/step0b_preprocess_datasets.py`)
+**Contains:** Daily temperature (max, min, mean), rainfall, wind speed, humidity for 10 Indian cities, 2000–2024.
 **Used for:** Koppen classification, monsoon onset, Growing Degree Days, crop water deficit, core climate features.
 **Format:** CSV, one row per city per day.
+
+**Preprocessing applied (`step0b`):**
+| Pipeline column | Source column | Transformation |
+|---|---|---|
+| `temp_max` | `temperature_2m_max` | rename |
+| `temp_min` | `temperature_2m_min` | rename |
+| `temp_mean` | — | `(temp_max + temp_min) / 2` |
+| `rainfall` | `precipitation_sum` | rename |
+| `wind_speed` | `wind_speed_10m_max` | km/h ÷ 3.6 → m/s |
+| `humidity` | — | derived via Steadman apparent-temperature inversion (see below) |
+
+**Humidity derivation** — the source dataset has no humidity column. Estimated from apparent temperature:
+```
+e  = (AT_mean - T_mean + 0.70 * wind_ms + 4.00) / 0.33
+es = 6.1078 * exp(17.27 * T_mean / (237.3 + T_mean))
+RH = clip((e / es) * 100, 5, 100)
+```
+Validated against climatological means: Mumbai 90%, Chennai 88%, Delhi 74%, Jaipur 65% — all geographically consistent.
 
 ---
 
@@ -37,8 +57,8 @@ The central output is a **Crop Viability Loss Event (CVLE):** a formally timesta
 **Full name:** Quality Controlled, Reliable Groundwater Level Data with Corresponding Specific Yield over India (2000–2022)
 **Source:** Scientific Data (Nature), October 2025
 **Paper:** `https://www.nature.com/articles/s41597-025-05899-5`
-**Download:** `https://figshare.com/articles/dataset/CGWB_India_quality_controlled_GWLs`
-**File:** `CGWB_India_quality_controlled_GWLs_ref_sy_2000_2022.csv`
+**Downloaded from:** Figshare DOI 10.6084/m9.figshare.29293877.v3
+**File:** `data/raw/cgwb/CGWB_India_quality_controlled_GWLs_ref_sy_2000_2022.csv`
 
 **Contains:**
 - 2,759 quality-controlled observation wells across India
@@ -47,30 +67,37 @@ The central output is a **Crop Viability Loss Event (CVLE):** a formally timesta
 - Specific yield (Sy) per well from hydrogeological maps
 - Higher mbgl = water table deeper = worse depletion
 
-**Backup:** `https://ckandev.indiadataportal.com/dataset/groundwater/resource/580a8f6e-3d86-4ca7-ac7d-cd5df12b443c/download/cgwb-changes-in-depth-to-water-level.csv`
+**Known gap — Jaipur:** Rajasthan state is entirely absent from this dataset. The nearest well to Jaipur is 130 km away in Haryana. Step 3 handles this with a nearest-well fallback (5 closest wells regardless of distance) and flags all Jaipur groundwater rows as `gw_imputed = 2`.
 
-**Cities with sufficient well coverage:** Delhi, Bangalore, Chennai, Hyderabad, Ahmedabad, Jaipur, Lucknow. Mumbai, Pune, Kolkata use CGWB yearbook values from `cgwb.gov.in/en/ground-water-level-monitoring`.
+**Well coverage at 50 km radius:**
+| City | Wells | City | Wells |
+|---|---|---|---|
+| Lucknow | 18 | Chennai | 5 |
+| Mumbai | 14 | Kolkata | 3 |
+| Delhi | 12 | Ahmedabad | 3 |
+| Pune | 10 | **Jaipur** | **0 → nearest-well fallback** |
+| Hyderabad | 9 | Bangalore | 7 |
 
 ---
 
 ### Dataset 3 — FAO GAEZ v4 Crop Suitability Index
 **Source:** FAO and IIASA
-**Portal:** `https://gaez.fao.org/`
-**Download:** `https://gaez.fao.org/datasets/hqfao::gaez-suitability-and-attainable-yield/about`
-**ECOCROP (crop thresholds):** `https://gaez.fao.org/pages/ecocrop`
+**Downloaded from:** FAO S3 bucket (`s3://data.gaezdev.aws.fao.org/res05/CRUTS32/Hist/8110H/`)
+**Files:** `data/raw/gaez/*.tif` (rainfed, high input, 1981–2010 historical baseline)
 
 **Contains:**
-- Crop suitability index (1–7: Not Suitable → Very High) for 53 crops, rainfed and irrigated
-- Historical baseline 1981–2010, ~9 km resolution GeoTIFF rasters
+- Crop suitability index for 53 crops, ~9 km resolution GeoTIFF rasters
 - ECOCROP: per-crop minimum GDD, seasonal water requirement, temperature limits, sowing window
 
-**GeoTIFF files to download:**
+**GeoTIFF files (renamed from FAO S3 naming `scHr_{crop}.tif`):**
 - `whe_suit_class_r_hist_cruts32_7clim.tif` — wheat
 - `cot_suit_class_r_hist_cruts32_7clim.tif` — cotton
 - `rcw_suit_class_r_hist_cruts32_7clim.tif` — wetland rice
 - `suc_suit_class_r_hist_cruts32_7clim.tif` — sugarcane
 - `srg_suit_class_r_hist_cruts32_7clim.tif` — sorghum
 - `pig_suit_class_r_hist_cruts32_7clim.tif` — groundnut
+
+**Known encoding issue:** The TIFFs use uint8 with observed values `[1–6, 8–10]`; value 7 is absent and values 8–10 appear to encode irrigated-potential categories beyond the standard 1–7 rainfed scale. Step 4 clips extracted values to max 7. Only Lucknow sugarcane is affected (raw=8 → clipped=7, correctly reflecting that Lucknow is a major sugarcane belt).
 
 **How used:** GAEZ provides the baseline suitability class per city per crop. ECOCROP provides threshold constants (GDD min, water requirement, max temperature) used as reference values in feature engineering — not model inputs but thresholds against which observed data is tested.
 
@@ -124,7 +151,7 @@ print(f"Master index: {master.shape}")  # (250, 2)
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('data/raw/kaggle_climate.csv', parse_dates=['date'])
+df = pd.read_csv('data/processed/kaggle_climate.csv', parse_dates=['date'])
 df['year']  = df['date'].dt.year
 df['month'] = df['date'].dt.month
 
@@ -141,13 +168,13 @@ def classify_koppen(T_ann, P_ann, T_min, T_max, P_dry,
     P_sum : total Apr–Sep precipitation (mm)
     P_win : total Oct–Mar precipitation (mm)
     """
-    # Koppen aridity threshold
+    # Koppen aridity threshold (Pth in mm; formula is 20*(T+c), not 2*(T+c))
     if P_sum >= 0.7 * P_ann:
-        Pth = 2 * T_ann + 28
+        Pth = 20 * T_ann + 280
     elif P_win >= 0.7 * P_ann:
-        Pth = 2 * T_ann
+        Pth = 20 * T_ann
     else:
-        Pth = 2 * T_ann + 14
+        Pth = 20 * T_ann + 140
 
     # B — Arid / Semi-arid
     if P_ann < Pth:
@@ -202,7 +229,6 @@ for (city, year), ydf in monthly.groupby(['city','year']):
                         n_dry_months=n_dry))
 
 koppen_df = pd.DataFrame(records)
-koppen_df.to_csv('data/processed/koppen_annual.csv', index=False)
 
 # Encode zone as integer for model use
 zone_categories = sorted(koppen_df['koppen_zone'].unique())
@@ -211,6 +237,7 @@ koppen_df['koppen_zone_enc'] = koppen_df['koppen_zone'].map(zone_map)
 import json
 json.dump(zone_map, open('data/processed/zone_map.json','w'), indent=2)
 
+koppen_df.to_csv('data/processed/koppen_annual.csv', index=False)
 print(f"Koppen annual: {koppen_df.shape}")
 print(f"Zones found: {zone_categories}")
 ```
@@ -270,7 +297,7 @@ for t in transitions:
 # pipeline/step2_climate_aggregate.py
 import pandas as pd, numpy as np
 
-df = pd.read_csv('data/raw/kaggle_climate.csv', parse_dates=['date'])
+df = pd.read_csv('data/processed/kaggle_climate.csv', parse_dates=['date'])
 df['year'] = df['date'].dt.year
 df['doy']  = df['date'].dt.dayofyear
 
@@ -366,7 +393,7 @@ def haversine(la1, lo1, la2, lo2):
     return R * 2 * asin(sqrt(a))
 
 cgwb = pd.read_csv(
-    'data/raw/CGWB_India_quality_controlled_GWLs_ref_sy_2000_2022.csv'
+    'data/raw/cgwb/CGWB_India_quality_controlled_GWLs_ref_sy_2000_2022.csv'
 )
 
 records = []
@@ -376,9 +403,12 @@ for city, (clat, clon) in CITY_COORDS.items():
     )
     nearby = cgwb[cgwb['dist_km'] <= RADIUS_KM]
 
+    # Jaipur fallback: Rajasthan absent from dataset; use 5 nearest wells
+    jaipur_fallback = False
     if len(nearby) == 0:
-        print(f"WARNING: No wells within {RADIUS_KM}km of {city}")
-        continue
+        nearby = cgwb.nsmallest(5, 'dist_km')
+        jaipur_fallback = True
+        print(f"WARNING: No wells within {RADIUS_KM}km of {city} — using {len(nearby)} nearest wells")
 
     for year in range(2000, 2023):
         yr2     = str(year)[2:].zfill(2)
@@ -389,7 +419,8 @@ for city, (clat, clon) in CITY_COORDS.items():
         records.append({'city': city, 'year': year,
                         'pre_monsoon_depth_mbgl':  round(pre,3)  if not np.isnan(pre)  else np.nan,
                         'post_monsoon_depth_mbgl': round(post,3) if not np.isnan(post) else np.nan,
-                        'n_wells': len(nearby)})
+                        'n_wells': len(nearby),
+                        'jaipur_fallback': int(jaipur_fallback)})
 
 gw = pd.DataFrame(records).sort_values(['city','year']).reset_index(drop=True)
 gw['depletion_rate'] = gw.groupby('city')['pre_monsoon_depth_mbgl'].diff()
@@ -398,7 +429,9 @@ climate = pd.read_csv('data/processed/climate_annual.csv')[['city','year','rainf
 gw = gw.merge(climate, on=['city','year'], how='left')
 gw['depth_recovery']      = gw['pre_monsoon_depth_mbgl'] - gw['post_monsoon_depth_mbgl']
 gw['recharge_efficiency'] = (gw['depth_recovery'] / gw['rainfall_annual']).clip(0, 1).round(4)
-gw['gw_imputed']          = (gw['year'] < 2005).astype(int)
+gw['gw_imputed'] = (gw['year'] < 2005).astype(int)
+gw.loc[gw['jaipur_fallback'] == 1, 'gw_imputed'] = 2  # nearest-well proxy, not 50km radius
+gw = gw.drop(columns=['jaipur_fallback'])
 
 # Backfill pre-2005 depletion_rate
 for city in gw['city'].unique():
@@ -456,6 +489,8 @@ for city, (lat, lon) in CITY_COORDS.items():
     with rasterio.open(CROP_RASTERS[city]) as src:
         row, col   = src.index(lon, lat)
         suit_class = int(src.read(1)[row, col])
+    # TIFFs use values 1–10 (8–10 = irrigated-potential categories); clip to 1–7 rainfed scale
+    suit_class = min(suit_class, 7)
     rec = {'city': city, 'gaez_baseline_class': suit_class}
     rec.update(ECOCROP[city])
     records.append(rec)
@@ -473,7 +508,7 @@ print(gaez[['city','crop','gaez_baseline_class','gdd_min','water_req']])
 # pipeline/step5_join_and_features.py
 import pandas as pd, numpy as np, json
 
-master      = pd.read_csv('data/master_index.csv')
+master      = pd.read_csv('data/processed/master_index.csv')
 climate     = pd.read_csv('data/processed/climate_annual.csv')
 groundwater = pd.read_csv('data/processed/groundwater_annual.csv')
 gaez        = pd.read_csv('data/processed/gaez_baseline.csv')
@@ -1352,6 +1387,7 @@ import subprocess, sys
 
 STEPS = [
     ('Master Index',                  'pipeline/step0_master_index.py'),
+    ('Preprocess Datasets',           'pipeline/step0b_preprocess_datasets.py'),
     ('Koppen Classification',         'pipeline/step1_koppen_classification.py'),
     ('Transition Detection',          'pipeline/step1b_transition_detection.py'),
     ('Climate Feature Aggregation',   'pipeline/step2_climate_aggregate.py'),
@@ -1401,8 +1437,10 @@ print("\n✓ VegShift complete. Open http://localhost:8050 for the dashboard.")
 vegshift/
 ├── data/
 │   ├── raw/
-│   │   ├── kaggle_climate.csv
-│   │   ├── CGWB_India_quality_controlled_GWLs_ref_sy_2000_2022.csv
+│   │   ├── climate/
+│   │   │   └── india_2000_2024_daily_weather.csv   ← original DS1 download
+│   │   ├── cgwb/
+│   │   │   └── CGWB_India_quality_controlled_GWLs_ref_sy_2000_2022.csv
 │   │   └── gaez/
 │   │       ├── whe_suit_class_r_hist_cruts32_7clim.tif
 │   │       ├── cot_suit_class_r_hist_cruts32_7clim.tif
@@ -1411,6 +1449,7 @@ vegshift/
 │   │       ├── srg_suit_class_r_hist_cruts32_7clim.tif
 │   │       └── pig_suit_class_r_hist_cruts32_7clim.tif
 │   ├── processed/
+│   │   ├── kaggle_climate.csv              ← standardized DS1 (output of step0b)
 │   │   ├── master_index.csv
 │   │   ├── koppen_annual.csv
 │   │   ├── zone_map.json
@@ -1481,6 +1520,7 @@ dash>=2.14
 | Step | Script | What It Does |
 |------|--------|-------------|
 | 0 | step0 | Build 250-row master index |
+| 0b | step0b | Standardize DS1 columns; derive humidity; output `kaggle_climate.csv` |
 | 1 | step1 | Koppen-Geiger classify every city-year; encode zone as integer |
 | 1b | step1b | Detect persistent zone transitions (3+ yr confirmation) → transition_report.json |
 | 2 | step2 | Aggregate daily climate → annual city features + monsoon onset + GDD |

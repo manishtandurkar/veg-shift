@@ -1,0 +1,11 @@
+city,gaez_baseline_class,crop,gdd_min,water_req,sow_doy,max_temp
+Delhi,5,wheat,1200,450,120,35
+Bangalore,1,ragi,1400,350,152,38
+Chennai,2,rice,2000,1200,152,38
+Hyderabad,1,groundnut,1600,500,152,40
+Ahmedabad,1,cotton,1800,700,152,40
+Jaipur,5,mustard,800,300,120,35
+Lucknow,7,sugarcane,2500,1500,90,38
+Mumbai,3,rice,2000,1200,152,38
+Pune,1,sorghum,1400,400,152,40
+Kolkata,2,rice,2000,1200,135,38
