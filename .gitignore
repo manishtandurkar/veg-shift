@@ -20,7 +20,7 @@ data/processed/
 data/output/
 
 # Generated model artifacts
-models/
-*.ckpt
-*.pkl
-*.pt
+# models/
+# *.ckpt
+# *.pkl
+# *.pt
