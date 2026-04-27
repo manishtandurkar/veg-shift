@@ -1,8 +1,26 @@
-models/
+# Local Python environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python / test caches
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Editor / tool metadata
+.claude/
+
+# Training / experiment logs
+lightning_logs/
+
+# Generated pipeline data that can be recreated from the raw inputs
+data/processed/
+data/output/
+
+# Generated model artifacts
+models/
 *.ckpt
 *.pkl
 *.pt
-.claude/

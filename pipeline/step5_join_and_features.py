@@ -57,7 +57,13 @@ def compute_cvle(group):
     group['cvle_label'] = cvle
     return group
 
-df = df.groupby('city', group_keys=False).apply(compute_cvle)
+# pandas 3 may exclude group keys from groupby-apply results; keep city explicitly.
+parts = []
+for city, group in df.groupby('city', sort=False):
+    group = group.copy()
+    group['city'] = city
+    parts.append(compute_cvle(group))
+df = pd.concat(parts, ignore_index=True)
 
 df.to_csv('data/processed/vegshift_master.csv', index=False)
 print(f"vegshift_master: {df.shape}")
