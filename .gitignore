@@ -22,3 +22,6 @@ pipeline/data/
 
 # Generated model artifacts
 models/
+
+# PDF files
+*.pdf
