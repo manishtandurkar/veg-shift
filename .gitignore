@@ -18,9 +18,7 @@ lightning_logs/
 # Generated pipeline data that can be recreated from the raw inputs
 data/processed/
 data/output/
+pipeline/data/
 
 # Generated model artifacts
-# models/
-# *.ckpt
-# *.pkl
-# *.pt
+models/
