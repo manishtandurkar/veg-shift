@@ -19,7 +19,7 @@
 
 VegShift combines three independent sources of information. Think of it like a doctor diagnosing a patient:
 - **Dataset 1:** The patient's vital signs (weather/temperature = atmospheric health)
-- **Dataset 2:** The patient's blood tests (groundwater depth = water resource health)  
+- **Dataset 2:** The patient's blood tests (groundwater depth = water resource health)
 - **Dataset 3:** The patient's medical history (crop requirements = what the crop needs to survive)
 
 ### Dataset 1: Daily Weather Data (Atmospheric Layer)
@@ -32,21 +32,21 @@ VegShift combines three independent sources of information. Think of it like a d
 
 **Raw example:**
 ```
-Date          City    Temp_Max  Temp_Min  Rainfall  Wind_Speed  Humidity
-2018-06-15    Delhi   42°C      28°C      15mm      5m/s        55%
-2018-06-16    Delhi   41°C      29°C      8mm       4m/s        58%
+Date          City    Temp_Max  Temp_Min  Rainfall  Wind_Speed
+2018-06-15    Delhi   42°C      28°C      15mm      5m/s
+2018-06-16    Delhi   41°C      29°C      8mm       4m/s
 ```
 
 **What we do with it:**
 
 1. **Aggregate to yearly summaries** (turn 365 daily records into 1 yearly record per city)
-2. **Classify climate zones** using the Köppen system: Is Delhi becoming more like a desert? A savanna? (More on this below)
+2. **Classify climate zones** using the Köppen system: Is Delhi becoming more like a desert? A savanna?
 3. **Calculate crop-specific metrics:**
    - **Growing Degree Days (GDD):** Temperature accumulation needed for a crop to mature. Wheat needs ~1200 GDD/year; if the year only gives 800 GDD, wheat won't mature.
    - **Monsoon onset:** When does the rainy season start? If it starts late, farmers miss the planting window.
    - **Water deficit:** How much rain did the crop need vs. how much it actually got?
 
-**Preprocessing note:** The raw data didn't include humidity directly. We derived it using a physics-based formula (Steadman's apparent temperature inversion) and validated it against known city-averages (Mumbai ~90%, Jaipur ~65%).
+**Preprocessing note:** The raw data has no humidity column. We derived it using a physics-based formula (Steadman's apparent temperature inversion) and validated it against known city averages (Mumbai ~90%, Jaipur ~65%).
 
 ---
 
@@ -55,7 +55,7 @@ Date          City    Temp_Max  Temp_Min  Rainfall  Wind_Speed  Humidity
 **What is it?**  
 Depth measurements of water tables in observation wells across India, taken 4 times per year (Jan, May, Aug, Nov) from 2000–2022.
 
-**Source:** Central Groundwater Board (CGWB) – India's official water agency  
+**Source:** Central Groundwater Board (CGWB) — India's official water agency  
 **Unit:** Metres Below Ground Level (mbgl). Higher = water table is deeper = aquifer is depleted.
 
 **Raw example:**
@@ -63,7 +63,6 @@ Depth measurements of water tables in observation wells across India, taken 4 ti
 Well_Location    Jan_2000  May_2000  Aug_2000  Nov_2000
 Delhi_Well_7     15 mbgl   18 mbgl   12 mbgl   14 mbgl
 Delhi_Well_8     16 mbgl   19 mbgl   13 mbgl   15 mbgl
-...              ...       ...       ...       ...
 ```
 
 **Interpretation:**
@@ -74,14 +73,16 @@ Delhi_Well_8     16 mbgl   19 mbgl   13 mbgl   15 mbgl
 
 **What we do with it:**
 
-1. **Aggregate spatially** (all wells within 50 km of a city → take the median depth for that city-year)
-2. **Track depletion rate** (year-over-year change: is the water table dropping each year?)
-3. **Measure recharge efficiency** (after monsoon, how much did the water level recover per mm of rainfall? If it recovered poorly, the aquifer is damaged)
-4. **Combine with climate** (if rainfall is low AND the aquifer isn't recovering, that's a "dual deficit" = severe water crisis)
+1. **Aggregate spatially** (all wells within 50 km of a city — take the median depth)
+2. **Track depletion rate** (year-over-year change: is the water table dropping?)
+3. **Measure recharge efficiency** (after monsoon, how much did the level recover per mm of rainfall?)
+4. **Combine with climate** (if rainfall is low AND the aquifer isn't recovering, that's a "dual deficit")
 
-**Special cases:**
-- **Jaipur problem:** Rajasthan state is missing from the CGWB dataset. We use the 5 nearest wells outside the state as a fallback and flag it.
-- **Pre-2005:** Before 2005, data is sparse. We backfill missing years using the average depletion rate from 2005–2007 for that city.
+**Special cases and data quality:**
+- **Jaipur:** Rajasthan state is missing from CGWB entirely. We use the 5 nearest wells from other states as a fallback, flagged as `gw_imputed=2`.
+- **Kolkata:** Wells near Kolkata only have November (post-monsoon) readings; no May (pre-monsoon) readings exist in the dataset. City-mean imputation fails (mean of all-NaN = NaN), so we fall back to the global median across all cities.
+- **Years 2023–2024:** CGWB dataset ends in 2022. Years beyond that have no groundwater records and are marked `gw_imputed=1` (backfill).
+- **Pre-2005:** Data is sparse. Missing years are backfilled using the average depletion rate from 2005–2007 for that city.
 
 ---
 
@@ -92,11 +93,11 @@ Geospatial maps (GeoTIFFs) from the UN Food and Agriculture Organization showing
 
 **Source:** FAO GAEZ v4 database, based on 1981–2010 climate baseline  
 **Resolution:** ~9 km grid cells across India  
-**Coverage:** 53 crops; we use 6 (wheat, cotton, rice, sugarcane, mustard, ragi, groundnut)
+**Coverage:** 53 crops; we use 6 (wheat, cotton, rice, sugarcane, mustard, ragi/groundnut)
 
 **Suitability scale (1–7):**
-- 1 = Not suitable (won't grow)
-- 4 = Moderately suitable (will grow OK)
+- 1 = Not suitable
+- 4 = Moderately suitable
 - 7 = Very suitable (optimal)
 
 **Example extraction at city coordinates:**
@@ -107,8 +108,7 @@ Jaipur      Mustard     5 (suitable)
 Chennai     Rice        6 (very suitable)
 ```
 
-**Crop requirements (ECOCROP thresholds):**  
-Each crop has documented minimum needs:
+**Crop requirements (ECOCROP thresholds):**
 
 | Crop      | GDD_Min | Water_Req | Max_Temp |
 |-----------|---------|-----------|----------|
@@ -129,17 +129,16 @@ Compare observed climate against these thresholds. If Delhi's observed GDD < 120
 Köppen is a system that labels Earth's climates with short codes. Think of it like blood types for climate.
 
 **Examples:**
-- **Am** = Tropical monsoon (hot, wet, seasonal rain) → Mumbai, Kolkata, most of coastal India
+- **Am** = Tropical monsoon (hot, wet, seasonal rain) → Mumbai, Kolkata, coastal India
 - **Aw** = Tropical savanna (hot, seasonal rain, pronounced dry season) → Bangalore, Chennai
 - **BSh** = Semi-arid hot (hot, dry, borderline desert) → Jaipur, Delhi, Hyderabad
-- **BWh** = Arid hot (desert) → Hyper-dry regions
+- **BWh** = Arid hot (desert) → hyper-dry regions
 - **Cwa** = Humid subtropical (cold winter, hot summer) → Lucknow
 
 **Why it matters:**  
-Different crops thrive in different climate zones. If a city's zone shifts (e.g., tropical → semi-arid), the crops grown there may no longer be suitable.
+Different crops thrive in different climate zones. If a city's zone shifts (e.g., tropical → semi-arid), its crops may no longer be suitable.
 
-**How we classify:**  
-Based on annual temperature, precipitation, and seasonal patterns:
+**How we classify:**
 ```python
 if annual_rainfall < aridity_threshold:
     if annual_rainfall < 0.5 * aridity_threshold:
@@ -156,12 +155,12 @@ elif temperature_coldest_month >= 0:
 
 A **CVLE** is a formally detected event marking when a crop stops being viable for a city.
 
-**Trigger conditions (conjunctive = ALL must be true):**
+**Trigger conditions (ALL must be true):**
 
 1. **Dual-deficit persistence:** For 2+ consecutive years, BOTH:
    - Atmospheric water deficit > 40% (insufficient rainfall)
    - Groundwater recharge efficiency < 30% (aquifer isn't recovering)
-   
+
 2. **Multi-threshold breach in the current year:** At least 2 of these 3 must be true:
    - Sowing window missed by >60% (monsoon too late)
    - Crop water deficit > 40% (too dry)
@@ -169,158 +168,121 @@ A **CVLE** is a formally detected event marking when a crop stops being viable f
 
 **Why this design?**
 - **Persistence** filters out single-year bad luck; only multi-year stress counts
-- **Multi-threshold** ensures the problem isn't just one factor but multiple systems failing simultaneously
+- **Multi-threshold** ensures multiple systems fail simultaneously, not just one bad season
 - **Conservative** approach reduces false alarms
 
 **Example CVLE:**
 ```
 Year 2018 (Delhi, Wheat):
-  Dual-deficit: Yes (2017–2018 both years had it)
-  Sowing window miss: 65% ✓
-  Water deficit: 45% ✓
-  GDD adequate: No ✓
-  
+  Dual-deficit: Yes (2017 and 2018 both had it)
+  Sowing window miss: 65%  --> threshold 1 breached
+  Water deficit: 45%       --> threshold 2 breached
+  GDD adequate: No         --> threshold 3 breached (bonus)
+
   Result: CVLE triggered for Delhi wheat in 2018
 ```
 
 ### What is the "Dual Deficit"?
 
-The dual deficit is when both atmospheric water (rainfall) AND subsurface water (groundwater) systems fail simultaneously.
+The dual deficit is when both atmospheric water (rainfall) AND subsurface water (groundwater) fail simultaneously.
 
 **Think of it like this:**  
-A farmer relies on two water sources:
-1. **Rainfall** (atmosphere)
-2. **Wells/groundwater** (subsurface)
-
-In normal years, if rainfall is low, the farmer can pump from wells. If wells are full, a bad rain year is survivable.
-
-But if BOTH fail at once → severe crisis.
+A farmer has two water sources: rainfall (sky) and wells (ground). If rainfall is low, the farmer pumps from wells. If BOTH fail at once, there is no backup — severe crisis.
 
 **Detection:**
 ```
-Dual_deficit = (crop_water_deficit > 0.4) AND (recharge_efficiency < 0.30)
-```
-
-**Example:**
-```
-Delhi 2018:
-  Rainfall in monsoon: 200 mm (need 450 mm) → water_deficit = 0.56 ✓
-  Aquifer recovery: only 0.8 m per 100 mm rain → efficiency = 0.008 ✓
-  
-  Both failed → Dual deficit active
+dual_deficit = (crop_water_deficit > 0.4) AND (recharge_efficiency < 0.30)
 ```
 
 ---
 
-## Part 3: The 14-Step Pipeline
+## Part 3: The 17-Step Pipeline
 
 A **pipeline** is a series of scripts that run sequentially. Each step reads inputs, processes them, and writes outputs that the next step uses.
 
 ```
 Raw Data
-   ↓
-Step 0-4: Data Processing & Aggregation
-   ↓
-Step 5: Merge all data + Create labels
-   ↓
-Step 6-9: Train ML Models & Explain them
-   ↓
+   |
+Step 0-4:  Data Processing and Aggregation
+   |
+Step 5:    Merge all data + Create CVLE labels
+   |
+Step 6-9:  Train ML Models and Explain them
+   |
 Step 10-13: Analyze results + Generate reports
-   ↓
-Step 14: Build interactive dashboard
+   |
+Step 14:   Build interactive dashboard
 ```
 
-### Phase 1: Data Collection & Standardization (Steps 0–4)
+---
+
+### Phase 1: Data Collection and Standardization (Steps 0–4)
 
 #### Step 0: Master Index
-**Input:** Nothing (just definitions)  
-**Output:** `master_index.csv` (250 rows)
+**Input:** Nothing (just city and year definitions)  
+**Output:** `data/processed/master_index.csv` (250 rows)
 
-Creates the backbone table: all 10 cities × 25 years = 250 city-year combinations.
+Creates the backbone table: 10 cities × 25 years = 250 city-year combinations. This is the join key that everything else attaches to.
 
 ```
 city         year
 Delhi        2000
 Delhi        2001
 ...
-Mumbai       2024
+Pune         2024
 ```
-
-This is the "join key" that everything else attaches to.
 
 ---
 
 #### Step 0b: Preprocess Datasets
 **Input:** Raw CSV files  
-**Output:** Standardized files (`kaggle_climate.csv` with consistent column names)
+**Output:** `data/processed/kaggle_climate.csv`
 
-Cleans and standardizes the raw data:
+Cleans and standardizes the raw climate data:
 - Rename messy column names to standard ones
 - Convert units (wind speed: km/h → m/s)
 - Derive missing fields (humidity from apparent temperature)
 - Validate against known ranges
 
 ```python
-# Example: Standardize wind speed
-wind_kmh = 18  # original
-wind_ms = wind_kmh / 3.6  # convert to m/s
-→ 5 m/s
+# Wind speed conversion
+wind_ms = wind_kmh / 3.6
+
+# Humidity from Steadman apparent-temperature inversion
+e  = (AT_mean - T_mean + 0.70 * wind_ms + 4.00) / 0.33
+es = 6.1078 * exp(17.27 * T_mean / (237.3 + T_mean))
+RH = clip((e / es) * 100, 5, 100)
 ```
 
 ---
 
 #### Step 1: Köppen Classification
 **Input:** Daily climate data  
-**Output:** `koppen_annual.csv` (250 rows)
+**Output:** `data/processed/koppen_annual.csv` (250 rows)
 
-For each city-year, compute annual climate summary and classify into Köppen zone.
-
-```python
-# Compute annual statistics
-temp_mean = 26.5°C
-rainfall_annual = 650 mm
-temp_coldest_month = 18.2°C
-rainfall_driest_month = 10 mm
-rainfall_wettest_month = 180 mm
-
-# Apply Köppen logic
-if rainfall_annual < aridity_threshold:
-    if rainfall_annual < 0.5 * aridity_threshold:
-        zone = "BWh" (Desert)
-    else:
-        zone = "BSh" (Semi-arid)
-elif temp_coldest_month >= 18:
-    zone = "Aw" (Tropical savanna)
-```
+For each city-year, computes annual climate summary and classifies into Köppen zone.
 
 **Output example:**
 ```
 city      year  koppen_zone  T_ann   P_ann
 Delhi     2000  Cwa          24.5    680
 Delhi     2004  BSh          26.8    640
-Delhi     2005  BSh          27.2    620
 ```
 
 ---
 
 #### Step 1b: Transition Detection
 **Input:** `koppen_annual.csv`  
-**Output:** `transition_report.json`
+**Output:** `data/output/transition_report.json`
 
-Detects persistent climate zone transitions (not single-year noise).
+Detects persistent climate zone transitions. A transition only counts if the new zone holds for 3+ consecutive years (filters single-year noise).
 
 **Algorithm:**
-- For each city, scan through years sequentially
-- When zone changes (year i → year i+1), check if it holds for 3+ years
-- If confirmed, record as a transition
+```
+Zones over time: Cwa, Cwa, Cwa, BSh, BSh, BSh, BSh
+Years:          2000 2001 2002 2003 2004 2005 2006
 
-```python
-# Example: Delhi transitions
-
-Zones over time: Cwa, Cwa, Cwa, BSh, BSh, BSh, BSh, BSh, BSh
-Years:          2000 2001 2002 2003 2004 2005 2006 2007 2008
-
-# Transition detected: 2003 (Cwa → BSh, confirmed 3 years 2003–2005)
+Transition detected: 2003 (Cwa -> BSh, confirmed 3 years 2003-2005)
 ```
 
 **Output:**
@@ -336,128 +298,85 @@ Years:          2000 2001 2002 2003 2004 2005 2006 2007 2008
 
 ---
 
-#### Step 2: Climate Feature Engineering
+#### Step 2: Climate Feature Aggregation
 **Input:** Daily climate data  
-**Output:** `climate_annual.csv` (250 rows, 12 features)
+**Output:** `data/processed/climate_annual.csv` (250 rows, 12 features)
 
 Converts daily weather into annual crop-relevant features.
-
-**Features computed:**
 
 | Feature | How | Why |
 |---------|-----|-----|
 | `temp_mean` | Annual average | Baseline warmth |
-| `rainfall_annual` | Sum of all daily rain | Total water availability |
-| `n_dry_months` | Count of months <60 mm rain | Drought severity |
+| `rainfall_annual` | Sum of daily rain | Total water availability |
+| `n_dry_months` | Months with <60 mm rain | Drought severity |
 | `monsoon_onset_doy` | Day-of-year monsoon starts | Timing of planting window |
 | `sowing_window_miss` | % delay past optimal sowing date | Planting delay penalty |
-| `gdd_accumulation` | Sum of (T-base)° over Apr-Sep | Heat available for crop growth |
-| `crop_water_deficit` | (needed rain - actual rain) / needed | Water shortage percentage |
-
-**Example output:**
-```
-city      year  temp_mean  rainfall  monsoon_onset  gdd_accum  water_deficit
-Delhi     2018  27.5       620       135 (May-15)   800        0.45
-Jaipur    2018  28.1       315       150 (May-30)   750        0.65
-```
+| `gdd_accumulation` | Sum of (T - base)° over Apr–Sep | Heat available for crop growth |
+| `crop_water_deficit` | (needed rain - actual rain) / needed | Water shortage fraction |
 
 ---
 
 #### Step 3: Groundwater Aggregation
-**Input:** Well observation data (CGWB)  
-**Output:** `groundwater_annual.csv` (250 rows, 6 features)
+**Input:** CGWB well data  
+**Output:** `data/processed/groundwater_annual.csv` (250 rows, 6 features)
 
-Aggregates point well measurements into city-level groundwater metrics.
+Aggregates point well measurements into city-level metrics:
+1. Find all wells within 50 km of each city (Haversine distance)
+2. Take median depth per year (pre- and post-monsoon)
+3. Calculate depletion rate (year-over-year depth change) and recharge efficiency
 
-**Process:**
-
-1. Find all wells within 50 km of each city
-2. For each year, take the median depth (pre- and post-monsoon)
-3. Calculate derived metrics:
-   - **Depletion rate** = year-over-year depth change
-   - **Recharge efficiency** = (post-monsoon recovery) / (annual rainfall)
-
-**Example:**
-```
-Delhi wells within 50 km:
-  Well A: May depth 20 m, Nov depth 14 m
-  Well B: May depth 22 m, Nov depth 16 m
-  Well C: May depth 19 m, Nov depth 13 m
-  
-Median depth:
-  Pre-monsoon (May): 20 m
-  Post-monsoon (Nov): 14 m
-  Recovery: 6 m
-  Rainfall: 620 mm
-  Efficiency: 6 m / 620 mm ≈ 0.009 (0.9%)
-```
-
-**Special case (Jaipur):**  
-Rajasthan absent from CGWB dataset → use 5 nearest wells from other states and flag as `gw_imputed=2`
-
-**Output:**
-```
-city      year  pre_monsoon_depth  post_monsoon_depth  recharge_efficiency
-Delhi     2018  20.5              14.2                0.0097
-Jaipur    2018  35.2              30.1                0.0082 (flagged)
-```
+**Jaipur special case:** Rajasthan absent from CGWB → use 5 nearest wells from other states, flagged `gw_imputed=2`.
 
 ---
 
 #### Step 4: FAO GAEZ Extraction
 **Input:** GeoTIFF rasters  
-**Output:** `gaez_baseline.csv` (10 rows)
+**Output:** `data/processed/gaez_baseline.csv` (10 rows, one per city)
 
-Extracts suitability class for each city's primary crop from raster maps.
-
-**Process:**
-1. For each city, look up GeoTIFF raster value at city coordinates
-2. Rasters sometimes encode values 1–10; clip to 1–7 (rainfed scale)
-3. Attach ECOCROP thresholds (GDD min, water requirement, etc.)
-
-**Output:**
-```
-city        crop        gaez_baseline_class  gdd_min  water_req
-Delhi       Wheat       6 (very suitable)    1200     450
-Jaipur      Mustard     5 (suitable)         800      300
-Lucknow     Sugarcane   7 (very suitable)    2500     1500
-```
+Extracts suitability class for each city's primary crop from raster maps. Attaches ECOCROP thresholds (GDD min, water requirement, etc.). Values above 7 (irrigated potential) are clipped to 7.
 
 ---
 
-### Phase 2: Data Integration & Labeling (Step 5)
+### Phase 2: Data Integration and Labeling (Step 5)
 
 #### Step 5: Three-Way Join + CVLE Labels
 **Input:** Master index + climate + groundwater + GAEZ + Köppen  
-**Output:** `vegshift_master.csv` (250 rows, ~30 columns)
+**Output:** `data/processed/vegshift_master.csv` (250 rows, ~30 columns)
 
 This is the master dataset combining everything.
 
-**Process:**
-1. Start with 250-row master index (city × year)
-2. Merge climate features (12 cols)
-3. Merge groundwater features (6 cols)
-4. Merge static GAEZ/ECOCROP data (8 cols)
-5. Merge Köppen zone per year (2 cols)
-6. Fill missing values using city-group means
-7. Create compound features: `dual_deficit`, `gdd_adequate`
-8. **Create CVLE labels** using logic described earlier
+**Imputation strategy (two-pass):**
+1. Fill missing GW values with city-group mean
+2. If still NaN (entire city has no readings, e.g., Kolkata pre-monsoon), fill with global median across all cities
 
-**Compound features:**
+```python
+for col in ['pre_monsoon_depth_mbgl', ...]:
+    df[col] = df.groupby('city')[col].transform(lambda x: x.fillna(x.mean()))
+    global_median = df[col].median()
+    df[col] = df[col].fillna(global_median)
+```
+
+Years 2023–2024 (beyond CGWB range) are marked `gw_imputed=1`.
+
+**Compound features computed:**
 ```python
 dual_deficit = (crop_water_deficit > 0.4) AND (recharge_efficiency < 0.30)
 gdd_adequate = (gdd_accumulation >= crop_gdd_min)
-
-# Then apply CVLE logic:
-cvle_label = [
-    1 if (dual_deficit[i-1]==1 AND dual_deficit[i]==1)
-        AND (sow_miss[i]>0.6 OR water_def[i]>0.4 OR NOT gdd_adequate[i])
-        AND (satisfies 2 of 3 thresholds)
-    else 0
-]
 ```
 
-**Output shape:** 250 rows × 30 columns (all features ready for modeling)
+**CVLE label logic:**
+```python
+def compute_cvle(group):
+    for each year i from the second year onwards:
+        consec = dual_deficit[i] == 1 AND dual_deficit[i-1] == 1
+        t1 = sowing_window_miss[i] > 0.6
+        t2 = crop_water_deficit[i] > 0.4
+        t3 = gdd_adequate[i] == 0
+        if consec AND (t1 + t2 + t3) >= 2:
+            cvle_label[i] = 1
+```
+
+**Output:** 250 rows, 0 NaN in any key column, CVLE labels assigned per city-year.
 
 ---
 
@@ -465,121 +384,121 @@ cvle_label = [
 
 #### Step 6: Train Temporal Fusion Transformer (TFT)
 **Input:** `vegshift_master.csv`  
-**Output:** `vegshift-tft-best.ckpt` (trained model)
+**Output:** `data/output/vegshift-tft-best.ckpt`
 
 TFT is a deep learning model designed for time series forecasting with multiple feature types.
 
 **Architecture:**
-- **Encoder:** Looks back 5 years
-- **Decoder:** Predicts next 1 year
+- **Lookback:** 5 years (encoder sees the last 5 years)
+- **Horizon:** 1 year (decoder predicts next year's CVLE risk)
 - **Features:** 17 time-varying inputs + 2 static categoricals + 5 static reals
-- **Output:** 7 quantile predictions (10th, 25th, 50th, 75th, 90th percentiles + 2 others) for CVLE probability
+- **Output:** 7 quantile predictions for CVLE probability (10th–90th percentile)
 
 **Why TFT?**
 - Handles mixed feature types (categorical, numerical, temporal)
-- Attention mechanism shows which past years drove predictions (interpretability)
+- Attention mechanism shows which past years drove predictions
 - Probabilistic output (risk scores, not hard classifications)
-- Designed for small datasets (we have 250 rows with temporal structure)
+- Designed for small datasets with temporal structure
 
-**Training:**
-- Train on years 0–18 (2000–2018)
-- Validate on years 0–21 (2000–2021)
-- Early stopping if validation loss stops improving
-- Save best checkpoint
+**Training split:**
+- Train: years 0–18 (2000–2018)
+- Validation: years 0–21 (2000–2021)
+- Early stopping on validation loss
 
 ---
 
 #### Step 7: TFT Prediction + Attention Extraction
-**Input:** Best TFT checkpoint + test data  
-**Output:** `tft_predictions.csv`, `tft_attention_weights.json`
+**Input:** Best TFT checkpoint + all data  
+**Output:** `data/output/tft_predictions.csv`, `data/output/tft_attention_weights.json`
 
-Run the trained model on all data to get:
-1. **Predicted CVLE probabilities** for each city-year (0–1 risk score)
-2. **Attention weights** showing which past years mattered most
+Runs the trained model to get:
+1. Predicted CVLE probabilities for each city-year
+2. Attention weights showing which past years mattered most
 
 **Attention interpretation:**  
-"To predict 2020's CVLE probability, the model paid X% attention to 2019, Y% to 2018, Z% to 2017, etc."
-
-This reveals whether the model learned meaningful patterns or is just memorizing noise.
+"To predict 2020's CVLE probability, the model paid 40% attention to 2019, 30% to 2018, 20% to 2017..."
 
 ---
 
 #### Step 8: Train Baseline Models
 **Input:** `vegshift_master.csv`  
-**Output:** `rf_baseline.pkl`, `lr_baseline.pkl`, `lstm_baseline.pt`
+**Output:** `data/output/rf_baseline.pkl`, `lr_baseline.pkl`, `scaler.pkl`, `lstm_baseline.pt`, `baseline_metrics.json`
 
-Train simpler comparison models:
+Trains three comparison models:
 
-1. **Random Forest:** Decision tree ensemble (non-temporal, shows feature importances)
-2. **Logistic Regression:** Linear classifier (most interpretable)
-3. **LSTM:** Recurrent neural network (temporal baseline)
+1. **Random Forest:** Decision tree ensemble; non-temporal; fast; used by steps 9–11
+2. **Logistic Regression:** Linear classifier; most interpretable
+3. **LSTM:** Recurrent neural network; temporal baseline for TFT comparison
 
-These provide sanity checks:
-- Do all models agree on at-risk cities?
-- Is TFT's complexity justified or is a simpler model better?
-- What's the baseline performance?
+These provide sanity checks: do all models agree on at-risk cities? Is TFT's complexity justified?
 
 ---
 
 #### Step 9: SHAP Explainability
 **Input:** Random Forest model + test data  
-**Output:** `shap_explanation.json`
+**Output:** `data/output/shap_explanation.json`
 
-Compute SHAP (SHapley Additive exPlanations) values to explain Random Forest predictions.
+Computes SHAP (SHapley Additive exPlanations) values using TreeExplainer.
 
 **What it shows:**
-- **Global importance:** Which features matter most across all predictions?
-  - Example: `crop_water_deficit` (0.35), `depletion_rate` (0.28), `dual_deficit` (0.22)
-  
-- **Per-city importance:** Which features matter for each city?
-  - Delhi: sowing_window_miss, monsoon_onset_doy, temperature
-  - Jaipur: crop_water_deficit, rainfall_annual, depletion_rate
+- **Global importance:** Which features matter most across all predictions?  
+  e.g., `crop_water_deficit` (35%), `depletion_rate` (28%), `dual_deficit` (22%)
+- **Per-city importance:** Which features drive predictions for each specific city?  
+  Delhi: sowing_window_miss, monsoon_onset_doy  
+  Jaipur: crop_water_deficit, rainfall_annual
 
-**Why SHAP?**  
-More accurate than other importance methods; mathematically grounded in game theory.
+**Why SHAP?** Mathematically grounded in game theory; more accurate than permutation importance.
 
 ---
 
-### Phase 4: Analysis & Validation (Steps 10–13)
+### Phase 4: Analysis and Validation (Steps 10–13)
 
 #### Step 10: Causal Linkage Analysis
-**Tests:** Do climate transitions cause CVLE events?
+**Input:** `vegshift_master.csv` + `transition_report.json`  
+**Output:** `data/output/transition_cvle_linkage.json`
 
-**Method:**
+**Question:** Does a Koppen zone transition cause elevated CVLE risk afterwards?
+
+**Method:**  
 For each detected transition (e.g., Delhi 2003: Cwa → BSh):
-1. Compute average CVLE probability 3 years pre-transition (2000–2002)
-2. Compute average CVLE probability 3 years post-transition (2004–2006)
-3. Run statistical test (Wilcoxon signed-rank) to check if increase is significant
-4. Measure CVLE lag: How many years after transition did the first CVLE occur?
+1. Compute average CVLE probability in the 3 years before the transition (pre-risk)
+2. Compute average CVLE probability in the 3 years after (post-risk)
+3. Run a **Wilcoxon signed-rank test** to check if the increase is statistically significant
+4. Measure CVLE lag: how many years after transition did the first CVLE occur?
 
-**Output:** `transition_cvle_linkage.json`
+**Output example:**
 ```json
 {
   "city": "Delhi",
   "transition_year": 2003,
   "pre_risk_mean": 0.12,
   "post_risk_mean": 0.45,
-  "risk_delta": +0.33,
+  "risk_delta": 0.33,
   "p_value": 0.032,
   "significant": true,
-  "post_transition_cvle_lag": 2
+  "cvle_lag_years": 2
 }
 ```
 
-**Interpretation:**  
-Delhi's CVLE risk jumped significantly after the 2003 transition, and the first CVLE occurred 2 years later (in 2005).
+**Interpretation:** Delhi's CVLE risk jumped 33 percentage points after the 2003 transition (p=0.032 = significant), with the first CVLE appearing 2 years later.
 
 ---
 
-#### Step 11: Viability Trend Analysis
-**Tests:** Are crops getting steadily less viable over 25 years?
+#### Step 11: Viability Trend Regression
+**Input:** `vegshift_master.csv` + `data/output/rf_baseline.pkl` + `data/output/scaler.pkl`  
+**Output:** `data/output/viability_trend_report.json`
+
+**Question:** Are crops getting steadily less viable over 25 years?
 
 **Method:**
-For each city, fit a linear regression:
-- **X-axis:** Year (2000–2024)
-- **Y-axis:** RF-predicted CVLE probability
+1. Run Random Forest `predict_proba` on all 250 rows → `viability_risk_prob` per city-year
+2. For each city, fit linear regression: X = year, Y = viability risk probability
+3. Label trend based on slope significance:
+   - `deteriorating` — slope > 0 and p < 0.05
+   - `improving` — slope < 0 and p < 0.05
+   - `stable` — p >= 0.05
 
-**Output:** `viability_trend_report.json`
+**Output example:**
 ```json
 {
   "city": "Delhi",
@@ -590,49 +509,44 @@ For each city, fit a linear regression:
 }
 ```
 
-**Interpretation:**
-- **Slope 0.0045:** CVLE risk increases by 0.45% per year
-- **p-value 0.008:** Statistically significant (p < 0.05)
-- **Trend:** "deteriorating" (wheat viability declining over time)
+**Interpretation:** Delhi's CVLE risk increases by 0.45% per year over 2000–2024 (statistically significant).
 
 ---
 
 #### Step 12: Control City Validation
-**Purpose:** Ensure the model isn't finding spurious patterns.
+**Input:** `viability_trend_report.json` + `transition_report.json` + `crop_viability_events.json`  
+**Output:** Printed validation report
 
-Control cities: **Pune**, **Kolkata**, **Mumbai**  
-Expectation: These should remain climatically stable and agriculturally viable.
+**Purpose:** Ensure the model isn't detecting noise.
 
-**Checks:**
-1. **Trend check:** Trends should be "stable" (p ≥ 0.05)
-2. **CVLE count:** Should be 0 or very few
-3. **Transition count:** Should be 0 (no zone changes)
+**Control cities:** Pune, Kolkata, Mumbai  
+**Expected:** stable trends, 0 CVLEs, 0 Koppen transitions
 
-**Example output:**
-```
-✓ Pune: trend=stable (p=0.42), CVLE count=0, transitions=0
-✓ Kolkata: trend=stable (p=0.68), CVLE count=0, transitions=0
-✓ Mumbai: trend=stable (p=0.53), CVLE count=0, transitions=0
-```
+**Three checks:**
+1. Trend check — must be "stable" (p >= 0.05)
+2. CVLE count — must be 0
+3. Transition count — must be 0
 
-If ANY control fails → model has a problem (overfit, mislabeling, etc.)
+If any control city fails, the pipeline has a labeling or modeling problem.
+
+**At-risk city summary** is also printed (transitions, CVLEs, slope) for quick comparison.
 
 ---
 
 #### Step 13: Recharge Grid Export
-**Output:** `groundwater_recharge_grid.json`
+**Input:** `vegshift_master.csv`  
+**Output:** `data/output/groundwater_recharge_grid.json`
 
-Exports groundwater recharge efficiency for all cities × all years in a grid format for visualization.
+Simple pivot of recharge efficiency into a nested JSON for the dashboard.
 
 ```json
 {
   "Delhi": {"2000": 0.008, "2001": 0.007, "2002": 0.006, ...},
-  "Jaipur": {"2000": 0.005, "2001": 0.004, "2002": 0.003, ...},
-  ...
+  "Jaipur": {"2000": 0.005, "2001": 0.004, "2002": 0.003, ...}
 }
 ```
 
-This lets the dashboard show trends in aquifer health over time.
+This lets the dashboard show per-city aquifer health trends over time.
 
 ---
 
@@ -641,66 +555,67 @@ This lets the dashboard show trends in aquifer health over time.
 #### Step 14: Interactive Dashboard
 **Output:** Web app at `http://localhost:8050`
 
-Eight interactive panels:
+Built with Plotly Dash. Eight interactive panels:
 
-1. **Sowing Window Drift:** Monsoon onset vs. optimal sowing date over time (with transitions marked)
-2. **Dual-Deficit Heatmap:** Years when both atmospheric + groundwater failed (red grid)
-3. **CVLE Timeline:** Bar chart of CVLE counts per city (control cities in gray)
-4. **Transition → CVLE Linkage:** Table of all transitions with significance tests and lags
-5. **Recharge Efficiency Trend:** Groundwater recovery over time (falling line = aquifer damage)
-6. **Köppen Zone History:** Scatter plot of zone changes over time
-7. **SHAP Feature Importance:** Global and per-city feature contributions
-8. **Trend Report:** 25-year viability risk slope per city (color-coded by trend)
+1. **Sowing Window Drift** — monsoon onset day vs. optimal sowing date per city, with transition year markers
+2. **Dual-Deficit Heatmap** — city × year grid (red = both systems failed that year)
+3. **CVLE Timeline** — bar chart of CVLE events per city (control cities in gray)
+4. **Transition → CVLE Linkage** — table of all transitions, Wilcoxon p-value, risk delta, CVLE lag
+5. **Recharge Efficiency Trend** — groundwater recovery declining over time (falling = aquifer damage)
+6. **Köppen Zone History** — zone label per city per year as a scatter/timeline plot
+7. **SHAP Feature Importance** — bar charts of global and per-city feature contributions
+8. **Trend Report** — 25-year viability risk slope per city, color-coded by trend
 
-All charts are interactive: hover for details, filter by city, etc.
+All charts are interactive: hover for values, filter by city.
+
+Start with:
+```bash
+python pipeline/step14_dashboard.py
+```
+
+Then open `http://localhost:8050` in your browser.
 
 ---
 
-## Part 4: Data Quality & Special Cases
+## Part 4: Data Quality and Special Cases
 
 ### Missing Data Handling
 
-**Humidity:** Derived via physics formula (Steadman inversion), validated against climatological norms.
+| Issue | Cause | Fix |
+|---|---|---|
+| Humidity missing | Raw dataset has no humidity column | Derived via Steadman apparent-temperature inversion, validated against climatological norms |
+| Pre-2005 groundwater sparse | CGWB coverage poor before 2005 | Backfilled using 2005–2007 average depletion rate per city |
+| Jaipur groundwater missing | Rajasthan absent from CGWB dataset | Use 5 nearest wells from other states; flag `gw_imputed=2` |
+| Kolkata pre-monsoon GW all-NaN | Wells near Kolkata have no May readings in the dataset | Fall back to global median across all cities after city-mean imputation fails |
+| Years 2023–2024 GW missing | CGWB dataset ends at 2022 | Mark as `gw_imputed=1`; GW columns filled by city mean / global median in step5 |
 
-**Pre-2005 groundwater:** Backfilled using 2005–2007 average depletion rate per city.
+### Data Provenance Flags (`gw_imputed`)
 
-**Jaipur groundwater:** Rajasthan state missing from CGWB; use 5 nearest wells from other states and flag `gw_imputed=2`.
-
-**Method:** City-group mean imputation (never leak across cities).
-
----
-
-### Data Provenance Flags
-
-- **`gw_imputed=0`:** Within 50 km radius (authoritative)
-- **`gw_imputed=1`:** Filled by mean imputation
-- **`gw_imputed=2`:** Nearest-wells fallback (Jaipur)
-
----
+- `0` — Well within 50 km radius (authoritative measurement)
+- `1` — Filled by mean imputation (no well in range, or year beyond CGWB range)
+- `2` — Nearest-wells fallback from another state (Jaipur only)
 
 ### Known Limitations
 
-1. **GAEZ raster encoding:** Some values 8–10 represent irrigated potential but are clipped to 7 for consistency
-2. **Jaipur:** Groundwater data is extrapolated from other states (use caution)
-3. **Pre-2005:** Climate well-measured but groundwater sparse; results less confident
-4. **CVLE threshold conservatism:** Multi-year persistence + multi-threshold design reduces sensitivity
+1. **GAEZ raster encoding:** Some values 8–10 represent irrigated potential; clipped to 7 for rainfed consistency
+2. **Jaipur:** Groundwater data extrapolated from other states — treat with caution
+3. **Pre-2005:** Climate well-measured; groundwater sparse — results less confident
+4. **CVLE conservatism:** Multi-year persistence + multi-threshold design deliberately reduces sensitivity; some real loss events may not be flagged
 
 ---
 
 ## Part 5: Key Outputs Explained
 
-### What do the outputs mean?
-
-| Output File | What It Contains | Example | How to Use |
-|---|---|---|---|
-| `transition_report.json` | All detected climate zone transitions | Delhi: Cwa → BSh in 2003 | Check if city's climate officially shifted |
-| `crop_viability_events.json` | All detected CVLE events (timestamped) | Delhi wheat: CVLE in 2018 | Identifies exact year crop viability failed |
-| `transition_cvle_linkage.json` | Pre/post-transition CVLE risk (with stats) | Delhi transition 2003: risk ↑ from 12% → 45% (p=0.032) | Proves transition causes viability loss |
-| `viability_trend_report.json` | 25-year slope of CVLE risk | Delhi: slope=+0.0045/year (p=0.008) = "deteriorating" | Shows long-term trend (improving/stable/deteriorating) |
-| `shap_explanation.json` | Which features drive CVLE predictions | Global: crop_water_deficit (35%), depletion_rate (28%) | Understand why crops failed |
-| `tft_attention_weights.json` | Which years matter for prediction | Delhi: last year (40%), year-2 (30%), year-3 (20%) | Reveals model's temporal logic |
-| `groundwater_recharge_grid.json` | Annual aquifer recovery for all cities | Delhi 2020: efficiency=0.008 | Track groundwater health |
-| Dashboard | Interactive visualization | All above data visualized | Explore patterns and communicate findings |
+| Output File | What It Contains | Example |
+|---|---|---|
+| `transition_report.json` | All detected persistent Koppen transitions | Delhi: Cwa → BSh in 2003 |
+| `crop_viability_events.json` | All detected CVLE events (timestamped) | Delhi wheat: CVLE in 2018 |
+| `transition_cvle_linkage.json` | Pre/post-transition CVLE risk with Wilcoxon test | Delhi 2003: risk 12% → 45%, p=0.032 |
+| `viability_trend_report.json` | 25-year slope of CVLE risk per city | Delhi: slope=+0.0045/yr (deteriorating) |
+| `shap_explanation.json` | SHAP feature importances (global + per city) | crop_water_deficit: 35% global weight |
+| `tft_attention_weights.json` | Which past years the TFT model weighted | Delhi 2020: last year 40%, year-2: 30% |
+| `groundwater_recharge_grid.json` | Annual recharge efficiency for all cities | Delhi 2020: 0.008 |
+| `baseline_metrics.json` | RF / LR / LSTM test-set accuracy | RF: 0.87 F1, LR: 0.79 F1 |
 
 ---
 
@@ -708,60 +623,62 @@ All charts are interactive: hover for details, filter by city, etc.
 
 Let's walk through Delhi wheat from start to finish.
 
-### Step 0–4: Raw Data → Features
+### Steps 0–4: Raw Data → Features
 
-**Step 0:** Create master index  
-→ Delhi appears 25 times (2000–2024)
+**Step 0:** Create master index → Delhi appears 25 times (2000–2024)
 
-**Step 1–2:** Classify Köppen + compute climate features
+**Steps 1–2:** Classify Köppen + compute climate features
 ```
-Year  Temperature  Rainfall  Köppen  GDD   Water_Deficit
-2000  24.5°C       680 mm    Cwa     1250  0.05
-2003  26.8°C       640 mm    BSh     900   0.15  ← Zone shifted!
-2010  27.2°C       620 mm    BSh     750   0.30
-2018  28.1°C       500 mm    BSh     600   0.45  ← Water crisis
+Year  Temperature  Rainfall  Koppen  GDD   Water_Deficit
+2000  24.5C        680 mm    Cwa     1250  0.05
+2003  26.8C        640 mm    BSh     900   0.15  <- Zone shifted
+2010  27.2C        620 mm    BSh     750   0.30
+2018  28.1C        500 mm    BSh     600   0.45  <- Water crisis
 ```
 
 **Step 3:** Groundwater aggregate
 ```
 Year  Pre_Monsoon_Depth  Recharge_Eff  Depletion_Rate
-2000  15 m               0.010         —
+2000  15 m               0.010         --
 2003  17 m               0.008         +2 m (depleting)
 2018  25 m               0.005         +1.5 m/year
 ```
 
 ### Step 5: Combine + Label
 
-Create `vegshift_master.csv` row for Delhi 2018:
+`vegshift_master.csv` row for Delhi 2018:
 ```
 city="Delhi", year=2018, crop="wheat",
-temp_mean=28.1, rainfall=500, gdd_accum=600, water_deficit=0.45,
-pre_monsoon_depth=25, recharge_eff=0.005, gdd_min=1200,
-dual_deficit=1 (water_def>0.4 AND recharge_eff<0.30),
-gdd_adequate=0 (600 < 1200),
-sow_window_miss=0.65 (monsoon late)
+gdd_accum=600, water_deficit=0.45, recharge_eff=0.005,
+gdd_min=1200, sow_window_miss=0.65,
+dual_deficit=1  (0.45>0.4 AND 0.005<0.30)
+gdd_adequate=0  (600 < 1200)
 
-→ CVLE_label = 1 (triggers on dual_deficit + 2-of-3 thresholds)
+-> CVLE_label = 1 (dual_deficit 2+ years + 2-of-3 thresholds breached)
 ```
 
-### Step 6–9: Train Models
+### Steps 6–9: Train Models
 
 TFT learns: "When dual-deficit persists + GDD fails + sowing window misses → CVLE"
 
 SHAP analysis finds: "For Delhi, water_deficit (35%) and monsoon_onset (30%) drive CVLE most"
 
-### Step 10–11: Analyze
+### Steps 10–11: Analyze
 
-**Linkage:** Delhi's 2003 transition (Cwa → BSh) is followed by:
-- CVLE risk: 12% (pre) → 45% (post), p=0.032 ✓ significant
-- First CVLE: 2018 (lag = 15 years)
+**Linkage (step 10):** Delhi's 2003 transition (Cwa → BSh):
+- CVLE risk: 12% (pre) → 45% (post), p=0.032 — significant
+- First CVLE: 2018 (lag = 15 years from transition)
 
-**Trend:** Delhi's viability slope = +0.0045/year (p=0.008) = "deteriorating"
+**Trend (step 11):** Delhi's viability slope = +0.0045/year (p=0.008) = "deteriorating"
+
+### Step 12: Validate
+
+Pune, Kolkata, Mumbai all pass: stable trends, 0 CVLEs, 0 transitions.
 
 ### Step 14: Dashboard
 
 Visualize:
-- Sowing window drift (monsoon getting later)
+- Sowing window drift (monsoon getting later in Delhi)
 - Dual-deficit years (red heatmap shows 2017–2019 all hit)
 - CVLE timeline (Delhi = 1 event in 2018)
 - Recharge trend (well depth deepening 1–2 m/year)
@@ -774,11 +691,11 @@ Visualize:
 
 - **Climate alone:** Tells us temperature/rainfall but not sustainable water
 - **Groundwater alone:** Shows depletion but not immediate climate stress
-- **Together:** Comprehensive picture of water crisis (both short-term weather + long-term aquifer health)
+- **Together:** Comprehensive picture — both short-term weather and long-term aquifer health
 
 ### Why Dual-Deficit?
 
-Single-factor thresholds (e.g., "rainfall < X") produce too many false positives. Dual-deficit ensures both atmospheric and subsurface systems are failing, indicating real crisis.
+Single-factor thresholds (e.g., "rainfall < X") produce too many false positives. Dual-deficit ensures both atmospheric and subsurface systems fail simultaneously, indicating a real crisis not survivable by switching water sources.
 
 ### Why Temporal Models (TFT, LSTM)?
 
@@ -786,11 +703,11 @@ Crops respond to multi-year patterns, not single-year anomalies. Temporal models
 
 ### Why Transitions → CVLE Linkage?
 
-Proves the causal story: climate shift → crop loss. Without linkage analysis, we can't distinguish correlation from causation.
+Proves the causal story: climate shift → crop loss. Without linkage analysis, correlation and causation are indistinguishable.
 
 ### Why Control Cities?
 
-If Pune/Kolkata/Mumbai show deterioration, our labels are wrong. Controls validate the entire pipeline.
+If Pune/Kolkata/Mumbai show deterioration, the labels are wrong. Controls validate the entire pipeline is detecting real signal, not noise.
 
 ---
 
@@ -798,16 +715,49 @@ If Pune/Kolkata/Mumbai show deterioration, our labels are wrong. Controls valida
 
 | Component | Technology | Why |
 |---|---|---|
-| Data Processing | Pandas, NumPy | Fast, standard data manipulation |
-| Spatial (wells) | Haversine formula | Compute distances without external libs |
+| Data processing | Pandas, NumPy | Standard tabular manipulation |
+| Spatial (wells) | Haversine formula | Compute distances without external GIS libs |
 | Geospatial (rasters) | Rasterio | Read GeoTIFF suitability maps |
-| ML Models | Scikit-learn (RF, LR) | Fast, interpretable tree/linear models |
-| Deep Learning | PyTorch + PyTorch Lightning | TFT, LSTM implementations |
-| Time Series | PyTorch Forecasting | Specialized TFT library |
-| Explainability | SHAP | Industry-standard feature importance |
-| Statistics | SciPy | Wilcoxon test, distributions |
+| Statistics | SciPy | Wilcoxon test, linear regression |
+| ML models | Scikit-learn (RF, LR) | Fast, interpretable tree/linear models |
+| Deep learning | PyTorch + PyTorch Lightning | TFT, LSTM implementations |
+| Time series | PyTorch Forecasting | Specialized TFT library |
+| Explainability | SHAP | Industry-standard TreeExplainer |
 | Visualization | Plotly + Dash | Interactive web dashboard |
 | Orchestration | Python subprocess | Sequential step execution |
+| Testing | pytest | 29 tests covering all pipeline stages |
+
+---
+
+## Part 9: Running and Testing
+
+### Run the full pipeline
+
+```bash
+python run_vegshift.py
+```
+
+### See what steps exist without running them
+
+```bash
+python run_vegshift.py --dry-run
+```
+
+### Run individual steps
+
+```bash
+python pipeline/step0_master_index.py
+python pipeline/step5_join_and_features.py
+# ... etc.
+```
+
+### Run all tests
+
+```bash
+pytest tests/
+```
+
+Tests cover: runner file structure, step count, dry-run exit, dataset presence, output files, model files, data integrity (250 rows, 10 cities, 0 NaN in key columns).
 
 ---
 
@@ -815,34 +765,35 @@ If Pune/Kolkata/Mumbai show deterioration, our labels are wrong. Controls valida
 
 VegShift combines three datasets (climate, groundwater, crop requirements) to detect when crops become unviable after climate zone shifts in Indian cities.
 
-**The pipeline:**
-1. Standardizes data (Steps 0–4)
-2. Merges into master table (Step 5)
-3. Trains ML models (Steps 6–9)
-4. Validates findings (Steps 10–12)
-5. Visualizes insights (Step 14)
+**The 17-step pipeline:**
+1. Standardizes and preprocesses data (Steps 0–4)
+2. Merges into master table + creates CVLE labels (Step 5)
+3. Trains ML models: TFT + RF + LR + LSTM (Steps 6–9)
+4. Analyzes and validates findings (Steps 10–13)
+5. Visualizes all outputs in an interactive dashboard (Step 14)
 
 **Key innovations:**
-- Dual-deficit indicator (simultaneous atmospheric + subsurface failure)
-- Causal linkage analysis (transition → CVLE)
-- Multi-model ensemble (TFT + RF + LR + LSTM for validation)
-- Control city validation (Pune/Kolkata/Mumbai prove model isn't spurious)
-- Explainability (SHAP + TFT attention)
+- Dual-deficit indicator: simultaneous atmospheric + subsurface failure
+- CVLE: formally timestamped crop viability loss events
+- Causal linkage analysis: Wilcoxon test proving transition → viability loss
+- Multi-model ensemble: TFT primary, RF/LR/LSTM for validation
+- Control city validation: Pune/Kolkata/Mumbai prove model is not spurious
+- SHAP + TFT attention: full explainability at feature and temporal level
 
-**Output:** Timestamped Crop Viability Loss Events with full causal and feature-level explanations.
+**Output:** Timestamped Crop Viability Loss Events with full causal and feature-level explanations, plus an 8-panel interactive dashboard.
 
 ---
 
 ## Glossary
 
 - **CVLE:** Crop Viability Loss Event — when a crop becomes unviable for a city
-- **Köppen:** Climate classification system
+- **Koppen:** Climate classification system (Cwa, BSh, Am, etc.)
 - **GDD:** Growing Degree Days — heat accumulation needed for crop maturation
 - **Dual-deficit:** Simultaneous atmospheric (low rainfall) + subsurface (low recharge) failure
 - **Monsoon onset:** Day-of-year when rainy season begins
-- **Recharge efficiency:** (Water level recovery) / (Annual rainfall)
-- **SHAP:** Feature importance method based on game theory
-- **TFT:** Temporal Fusion Transformer — deep learning time series model
+- **Recharge efficiency:** Water level recovery / Annual rainfall
+- **SHAP:** SHapley Additive exPlanations — feature importance method from game theory
+- **TFT:** Temporal Fusion Transformer — deep learning time series model with attention
 - **LSTM:** Long Short-Term Memory — recurrent neural network for sequences
-- **Pipeline:** Sequential data processing workflow
-
+- **Wilcoxon test:** Non-parametric statistical test for paired comparisons (pre vs. post)
+- **Pipeline:** Sequential data processing workflow where each step feeds the next
