@@ -9,6 +9,7 @@ import sys
 
 STEPS = [
     ("Step 0  — Master Index",                "pipeline/step0_master_index.py"),
+    ("Step 0b — Preprocess Datasets",         "pipeline/step0b_preprocess_datasets.py"),
     ("Step 1  — Koppen Classification",        "pipeline/step1_koppen_classification.py"),
     ("Step 1b — Transition Detection",         "pipeline/step1b_transition_detection.py"),
     ("Step 2  — Climate Feature Aggregation",  "pipeline/step2_climate_aggregate.py"),

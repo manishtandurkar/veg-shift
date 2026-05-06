@@ -18,10 +18,17 @@ df = df.merge(groundwater[['city','year','pre_monsoon_depth_mbgl',
 df = df.merge(gaez,   on='city',          how='left')   # static broadcast
 df = df.merge(koppen, on=['city','year'],  how='left')   # koppen per year
 
-# Impute missing GW values with city group mean
+# Impute missing GW values with city group mean; fall back to global median
+# for cities where all values are NaN (e.g. Kolkata has no May readings in CGWB)
 for col in ['pre_monsoon_depth_mbgl','post_monsoon_depth_mbgl',
             'depletion_rate','recharge_efficiency']:
     df[col] = df.groupby('city')[col].transform(lambda x: x.fillna(x.mean()))
+    global_median = df[col].median()
+    df[col] = df[col].fillna(global_median)
+
+# gw_imputed: 0=measured, 1=pre-2005 backfill, 2=nearest-well proxy
+# Years 2023-2024 have no CGWB readings (dataset ends 2022); mark as imputed
+df['gw_imputed'] = df['gw_imputed'].fillna(1).astype(int)
 
 # Also impute monsoon_onset and sowing_window_miss
 for col in ['monsoon_onset_doy','sowing_window_miss','gdd_accumulation']:

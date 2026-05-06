@@ -16,8 +16,8 @@ def test_runner_defines_steps_list():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert hasattr(mod, "STEPS")
-    # step0, step1, step1b, steps 2-14 = 16 entries
-    assert len(mod.STEPS) == 16, f"Expected 16 steps, got {len(mod.STEPS)}"
+    # step0, step0b, step1, step1b, steps 2-14 = 17 entries
+    assert len(mod.STEPS) == 17, f"Expected 17 steps, got {len(mod.STEPS)}"
 
 def test_runner_dry_run_exits_zero():
     result = subprocess.run(
