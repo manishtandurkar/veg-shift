@@ -1379,6 +1379,357 @@ if __name__ == '__main__':
 
 ---
 
+### Step 15 — Crop Advisory Engine
+
+**Role:** Forward-looking crop ranking that accounts for where the climate is heading, not just where it is today.
+
+**Inputs:** `data/processed/vegshift_master.csv`, `data/output/viability_trend_report.json`
+
+**Logic:**
+A catalogue of 14 Indian crops (wheat, mustard, rice, cotton, sugarcane, groundnut, sorghum, ragi, chickpea, lentil, maize, sunflower, bajra, barley) is scored against each city's current conditions on five independent axes, each worth a fixed share of 100 points:
+
+| Axis | Points | What is measured |
+|------|--------|-----------------|
+| Zone compatibility | 30 | Whether the city's current Koppen zone appears in the crop's viable zone list |
+| Temperature stress | 20 | Margin between observed max temp and crop's upper thermal limit |
+| Rainfall adequacy | 20 | Ratio of annual rainfall to crop water requirement |
+| Groundwater stress | 15 | Pre-monsoon depth and depletion rate combined |
+| Trajectory penalty | 15 | 5-year linear trends in rainfall, temperature, and GW depth — penalises crops whose future climate fit is worsening even if viable today |
+
+The trajectory penalty is the key innovation: a crop that is borderline viable now but whose climate envelope is narrowing scores lower than a drought-tolerant alternative that is gaining headroom. Final scores are clipped to [0, 100] and sorted descending per city.
+
+**Output:** `data/output/crop_advisory.json` — per-city ranked list of all 14 crops with score, zone-match flag, and season (kharif/rabi/annual).
+
+```python
+# pipeline/step15_crop_advisory.py
+import json, pandas as pd, numpy as np
+
+# 14 Indian crops with zone compatibility, resource requirements, and season
+INDIAN_CROPS = {
+    'wheat':     {'zones':['BSh','BSk','Cwa','Cwb','Cfa'], 'min_temp':5,  'max_temp':32, 'water_req':450,  'gdd_min':1200, 'season':'rabi'},
+    'mustard':   {'zones':['BWh','BWk','BSh','BSk'],        'min_temp':5,  'max_temp':30, 'water_req':300,  'gdd_min':800,  'season':'rabi'},
+    'rice':      {'zones':['Aw','Am','Af','Cwa'],           'min_temp':20, 'max_temp':38, 'water_req':1200, 'gdd_min':2000, 'season':'kharif'},
+    'cotton':    {'zones':['BSh','BWh','Aw'],               'min_temp':18, 'max_temp':40, 'water_req':700,  'gdd_min':1800, 'season':'kharif'},
+    'sugarcane': {'zones':['Cwa','Aw','Am'],                'min_temp':20, 'max_temp':38, 'water_req':1500, 'gdd_min':2500, 'season':'annual'},
+    'groundnut': {'zones':['BSh','Aw','Cwa'],              'min_temp':20, 'max_temp':40, 'water_req':500,  'gdd_min':1600, 'season':'kharif'},
+    'sorghum':   {'zones':['BSh','BWh','Aw','Cwa'],        'min_temp':18, 'max_temp':40, 'water_req':400,  'gdd_min':1400, 'season':'kharif'},
+    'ragi':      {'zones':['Aw','BSh','Cwa'],              'min_temp':18, 'max_temp':38, 'water_req':350,  'gdd_min':1400, 'season':'kharif'},
+    'chickpea':  {'zones':['BSh','BSk','Cwa'],             'min_temp':5,  'max_temp':30, 'water_req':250,  'gdd_min':900,  'season':'rabi'},
+    'lentil':    {'zones':['BSk','Cwa','BSh'],             'min_temp':5,  'max_temp':28, 'water_req':200,  'gdd_min':700,  'season':'rabi'},
+    'maize':     {'zones':['Cwa','Aw','BSh'],              'min_temp':18, 'max_temp':38, 'water_req':600,  'gdd_min':1600, 'season':'kharif'},
+    'sunflower': {'zones':['BSh','Cwa','Aw'],              'min_temp':18, 'max_temp':35, 'water_req':400,  'gdd_min':1200, 'season':'rabi'},
+    'bajra':     {'zones':['BWh','BSh','Aw'],              'min_temp':25, 'max_temp':42, 'water_req':300,  'gdd_min':1200, 'season':'kharif'},
+    'barley':    {'zones':['BSh','BSk','Cwa'],             'min_temp':3,  'max_temp':30, 'water_req':300,  'gdd_min':900,  'season':'rabi'},
+}
+
+df     = pd.read_csv('data/processed/vegshift_master.csv')
+trend  = pd.read_json('data/output/viability_trend_report.json')
+
+trend_slope = dict(zip(trend['city'], trend['slope']))
+
+advisory = {}
+for city, cdf in df.groupby('city'):
+    cdf    = cdf.sort_values('year')
+    latest = cdf.iloc[-1]
+    zone   = latest['koppen_zone']
+    t_max  = latest['temp_max']
+    rain   = latest['rainfall_annual']
+    gw_dep = latest['pre_monsoon_depth_mbgl']
+    depl   = latest['depletion_rate']
+
+    # 5-year climate trajectory
+    recent     = cdf[cdf['year'] >= cdf['year'].max() - 4]
+    rain_trend = float(np.polyfit(recent['year'], recent['rainfall_annual'], 1)[0])
+    temp_trend = float(np.polyfit(recent['year'], recent['temp_mean'], 1)[0])
+    gw_trend   = float(np.polyfit(recent['year'], recent['pre_monsoon_depth_mbgl'], 1)[0])
+
+    ranked = []
+    for crop, spec in INDIAN_CROPS.items():
+        score = 100.0
+
+        # Zone compatibility (30 pts)
+        score -= 0 if zone in spec['zones'] else 30
+
+        # Temperature stress (20 pts)
+        temp_margin = spec['max_temp'] - t_max
+        score -= max(0, (5 - temp_margin) * 4) if temp_margin < 5 else 0
+
+        # Rainfall adequacy (20 pts)
+        water_ratio = rain / spec['water_req']
+        score -= max(0, (1 - water_ratio) * 20)
+
+        # Groundwater stress (15 pts)
+        score -= min(15, gw_dep * 0.3 + max(0, depl) * 2)
+
+        # Trajectory penalty — penalise crops whose future climate fit is deteriorating (15 pts)
+        rain_pen = max(0, -rain_trend * 0.01 * (spec['water_req'] / 500))
+        temp_pen = max(0, temp_trend * 2) if t_max > spec['max_temp'] - 3 else 0
+        gw_pen   = max(0, gw_trend * 1.5)
+        score -= min(15, rain_pen + temp_pen + gw_pen)
+
+        score = max(0.0, round(score, 2))
+        ranked.append({'crop': crop, 'season': spec['season'],
+                       'score': score, 'zone_match': zone in spec['zones']})
+
+    ranked.sort(key=lambda x: -x['score'])
+    advisory[city] = {
+        'current_zone':   zone,
+        'rain_trend_5yr': round(rain_trend, 3),
+        'temp_trend_5yr': round(temp_trend, 4),
+        'gw_trend_5yr':   round(gw_trend, 3),
+        'ranked_crops':   ranked,
+    }
+
+json.dump(advisory, open('data/output/crop_advisory.json', 'w'), indent=2)
+print(f"Crop advisory generated for {len(advisory)} cities")
+for city, adv in advisory.items():
+    top3 = [f"{c['crop']}({c['score']})" for c in adv['ranked_crops'][:3]]
+    print(f"  {city:<12} zone={adv['current_zone']}  top3={top3}")
+```
+
+---
+
+### Step 16 — Irrigation and Groundwater-Aware Strategy Engine
+
+**Role:** Translates raw groundwater stress into actionable farm-level water management prescriptions with government scheme links.
+
+**Inputs:** `data/processed/vegshift_master.csv`, `data/processed/kaggle_climate.csv` (daily), `data/output/crop_advisory.json`
+
+**Logic:**
+Each city is classified into one of four **Recharge Stress Index (RSI)** levels using the latest year's `recharge_efficiency` and `pre_monsoon_depth_mbgl`:
+
+| RSI Level | Condition | Irrigation Prescribed | Crops to Avoid |
+|-----------|-----------|----------------------|----------------|
+| Critical | efficiency < 0.20 OR depth > 20 mbgl | Drip only | Rice, sugarcane, cotton |
+| Stressed | efficiency < 0.35 OR depth > 12 mbgl | Drip or sprinkler + rainwater harvesting | Rice, sugarcane |
+| Moderate | efficiency < 0.50 | Sprinkler recommended | Sugarcane |
+| Healthy | otherwise | Conventional acceptable | — |
+
+**Optimal sowing window** is derived from the daily climate file: the kharif month (June–September) with the highest long-run average rainfall is identified per city, and the recommendation is to sow 2–3 weeks before that peak to exploit the moisture pulse without waterlogging risk.
+
+**Recommended crops** are the top five from Step 15's ranked list after removing any crops on the avoid list for that RSI level, ensuring the agronomic advice is consistent with water availability.
+
+**Government schemes** are statically mapped per RSI level — PMKSY and PM-KUSUM for critical zones (drip infrastructure subsidy + solar pumps), MGNREGS for water conservation structures in stressed zones, RKVY for diversification grants in moderate zones.
+
+**Output:** `data/output/irrigation_strategy.json` — per-city RSI level, irrigation method, avoid-crop list, recommended crops, optimal sowing window, and applicable scheme descriptions.
+
+```python
+# pipeline/step16_irrigation_strategy.py
+import json, pandas as pd, numpy as np
+
+RSI_CRITICAL = 0.20   # recharge_efficiency < 0.20 → critical
+RSI_STRESSED = 0.35   # recharge_efficiency < 0.35 → stressed
+RSI_MODERATE = 0.50   # recharge_efficiency < 0.50 → moderate
+
+WATER_HEAVY = {'rice', 'sugarcane', 'cotton'}
+
+GOVT_SCHEMES = {
+    'PM-KUSUM': 'Solar pump subsidy for off-grid irrigation',
+    'PMKSY':    'Pradhan Mantri Krishi Sinchayee Yojana — drip/sprinkler subsidy',
+    'MGNREGS':  'Water conservation works — check dams, ponds',
+    'RKVY':     'Rashtriya Krishi Vikas Yojana — crop diversification grants',
+    'PMFBY':    'Pradhan Mantri Fasal Bima Yojana — crop insurance',
+}
+
+df       = pd.read_csv('data/processed/vegshift_master.csv')
+advisory = json.load(open('data/output/crop_advisory.json'))
+
+# Monthly avg rainfall from daily file → optimal sowing window
+daily = pd.read_csv('data/processed/kaggle_climate.csv', parse_dates=['date'])
+daily['month'] = daily['date'].dt.month
+monthly_rain = (daily.groupby(['city', 'month'])['rainfall']
+                     .mean()
+                     .reset_index()
+                     .rename(columns={'rainfall': 'avg_monthly_rain_mm'}))
+
+strategies = {}
+for city, cdf in df.groupby('city'):
+    cdf    = cdf.sort_values('year')
+    latest = cdf.iloc[-1]
+    rsi    = float(latest['recharge_efficiency'])
+    gw_dep = float(latest['pre_monsoon_depth_mbgl'])
+    depl   = float(latest['depletion_rate'])
+
+    if rsi < RSI_CRITICAL or gw_dep > 20:
+        rsi_level  = 'critical'
+        irrigation = 'drip_only'
+        avoid      = list(WATER_HEAVY)
+        schemes    = ['PMKSY', 'PM-KUSUM', 'PMFBY']
+    elif rsi < RSI_STRESSED or gw_dep > 12:
+        rsi_level  = 'stressed'
+        irrigation = 'drip_or_sprinkler_with_rwh'
+        avoid      = ['rice', 'sugarcane']
+        schemes    = ['PMKSY', 'MGNREGS', 'PMFBY']
+    elif rsi < RSI_MODERATE:
+        rsi_level  = 'moderate'
+        irrigation = 'sprinkler_recommended'
+        avoid      = ['sugarcane']
+        schemes    = ['PMKSY', 'RKVY']
+    else:
+        rsi_level  = 'healthy'
+        irrigation = 'conventional_acceptable'
+        avoid      = []
+        schemes    = ['RKVY', 'PMFBY']
+
+    # Optimal sowing window: peak kharif rainfall month
+    city_monthly = monthly_rain[monthly_rain['city'] == city]
+    kharif_rain  = city_monthly[city_monthly['month'].between(6, 9)]
+    if len(kharif_rain) > 0:
+        peak_month = int(kharif_rain.loc[kharif_rain['avg_monthly_rain_mm'].idxmax(), 'month'])
+        sow_window = f"Month {peak_month} (sow 2–3 weeks before peak rainfall)"
+    else:
+        sow_window = 'June–July (default kharif window)'
+
+    rec_crops = [c['crop'] for c in advisory[city]['ranked_crops']
+                 if c['crop'] not in avoid][:5]
+
+    strategies[city] = {
+        'rsi_level':            rsi_level,
+        'recharge_efficiency':  round(rsi, 4),
+        'gw_depth_mbgl':        round(gw_dep, 2),
+        'depletion_rate':       round(depl, 4),
+        'irrigation_method':    irrigation,
+        'avoid_crops':          avoid,
+        'recommended_crops':    rec_crops,
+        'optimal_sow_window':   sow_window,
+        'govt_schemes':         {k: GOVT_SCHEMES[k] for k in schemes},
+    }
+
+json.dump(strategies, open('data/output/irrigation_strategy.json', 'w'), indent=2)
+print(f"Irrigation strategy saved for {len(strategies)} cities")
+for city, s in strategies.items():
+    print(f"  {city:<12} RSI={s['rsi_level']:<10} method={s['irrigation_method']}")
+```
+
+---
+
+### Step 17 — Exploitation Risk and Investment Protection Engine
+
+**Role:** Detect farmer economic vulnerability from climate predictors and surface the legal price floor before a distress sale can occur. No existing system does this.
+
+**Inputs:** `data/processed/vegshift_master.csv`, `data/output/viability_trend_report.json`, `data/output/transition_cvle_linkage.json`, `data/output/crop_advisory.json`
+
+**Exploitation Risk Index (ERI):**
+A single scalar in [0, 1] computed as a weighted composite of five climate-derived signals:
+
+| Component | Weight | Source |
+|-----------|--------|--------|
+| CVLE probability (5-yr rolling mean) | 0.30 | `cvle_label` from vegshift_master |
+| Drought risk | 0.25 | `crop_water_deficit` (latest year) |
+| Groundwater stress | 0.20 | `pre_monsoon_depth_mbgl` normalised to 25 mbgl ceiling |
+| Viability trajectory risk | 0.15 | Linear trend slope from Step 11, normalised |
+| Climate transition risk | 0.10 | Worst post-transition `risk_delta` from Step 10 |
+
+**Alert threshold:** ERI ≥ 0.65. When breached, the system outputs:
+- **MSP** (Minimum Support Price, 2024-25 rates) for the city's highest-ranked crop from Step 15
+- **Distress price threshold** = 80% of MSP — any offer below this flags potential exploitation
+- **Alternative crops** — top 3 from Step 15 advisory excluding the primary crop
+- **State procurement center** URL — direct link to government mandated buyer
+- **PMFBY** crop insurance scheme link
+
+**Why 80%?** Indian agricultural market surveys consistently find distress sales 15–25% below MSP in drought years. 80% of MSP captures the lower bound of legitimate price variation while flagging the range where middlemen extract abnormal margins from climate-stressed farmers.
+
+**Novelty:** All five ERI inputs are derived purely from climate and groundwater data collected in earlier pipeline steps. No market price feed, no survey data, no farm-level records are required. The exploitation vulnerability signal is inferred entirely from the physical climate trajectory — making this applicable to any Indian city with meteorological data.
+
+**Output:** `data/output/exploitation_risk_report.json` — per-city ERI, alert flag, component breakdown, MSP, distress threshold, alternative crops, and procurement/insurance links.
+
+```python
+# pipeline/step17_exploitation_risk.py
+import json, pandas as pd, numpy as np
+
+# MSP 2024-25 (INR per quintal); sugarcane is FRP per quintal
+MSP_2024 = {
+    'wheat':     2275, 'mustard':   5650, 'rice':      2300,
+    'cotton':    7121, 'sugarcane':  340, 'groundnut': 6783,
+    'sorghum':   3371, 'ragi':      4290, 'chickpea':  5440,
+    'lentil':    6425, 'maize':     2225, 'sunflower': 7280,
+    'bajra':     2625, 'barley':    1735,
+}
+DISTRESS_RATIO = 0.80   # any offer below 80% of MSP = distress sale
+ERI_THRESHOLD  = 0.65   # ERI above this triggers exploitation alert
+
+PROCUREMENT_CENTERS = {
+    'Delhi':     'Delhi State Civil Supplies Corp — procurement.delhi.gov.in',
+    'Jaipur':    'RAJFED — rajfed.in',
+    'Ahmedabad': 'GSCSC — gscsc.gujarat.gov.in',
+    'Lucknow':   'UP Cooperative Federation — upagripardarshi.gov.in',
+    'Hyderabad': 'MARKFED Telangana — markfed.telangana.gov.in',
+    'Chennai':   'TN Cooperatives — tnpcb.gov.in',
+    'Bangalore': 'HAFED Karnataka — ksfcltd.com',
+    'Pune':      'MSAMB — msamb.com',
+    'Kolkata':   'WBECSC — wbagri.gov.in',
+    'Mumbai':    'MSAMB — msamb.com',
+}
+
+df       = pd.read_csv('data/processed/vegshift_master.csv')
+trend    = pd.read_json('data/output/viability_trend_report.json')
+linkage  = pd.read_json('data/output/transition_cvle_linkage.json')
+advisory = json.load(open('data/output/crop_advisory.json'))
+
+trend_slope = dict(zip(trend['city'], trend['slope']))
+
+# Worst post-transition risk delta per city
+trans_severity = {}
+if len(linkage) > 0:
+    for city, grp in linkage.groupby('city'):
+        trans_severity[city] = float(grp['risk_delta'].max())
+
+reports = {}
+for city, cdf in df.groupby('city'):
+    cdf    = cdf.sort_values('year')
+    latest = cdf.iloc[-1]
+
+    # Five ERI components, each normalised 0–1
+    cvle_prob  = float(cdf['cvle_label'].tail(5).mean())
+    drought    = float(latest['crop_water_deficit'])
+    gw_stress  = float(min(1.0, latest['pre_monsoon_depth_mbgl'] / 25))
+    slope      = trend_slope.get(city, 0)
+    traj_risk  = float(min(1.0, max(0.0, slope * 50)))
+    t_sev      = trans_severity.get(city, 0.0)
+    trans_risk = float(min(1.0, max(0.0, t_sev)))
+
+    eri = round(min(1.0,
+        0.30 * cvle_prob  +
+        0.25 * drought    +
+        0.20 * gw_stress  +
+        0.15 * traj_risk  +
+        0.10 * trans_risk
+    ), 4)
+
+    top_crop     = advisory[city]['ranked_crops'][0]['crop']
+    msp          = MSP_2024.get(top_crop)
+    distress_thr = round(msp * DISTRESS_RATIO) if msp else None
+    alt_crops    = [c['crop'] for c in advisory[city]['ranked_crops']
+                    if c['crop'] != top_crop][:3]
+
+    reports[city] = {
+        'eri':   eri,
+        'alert': eri >= ERI_THRESHOLD,
+        'eri_components': {
+            'cvle_prob_5yr':   round(cvle_prob, 4),
+            'drought_risk':    round(drought, 4),
+            'gw_stress':       round(gw_stress, 4),
+            'trajectory_risk': round(traj_risk, 4),
+            'transition_risk': round(trans_risk, 4),
+        },
+        'primary_crop':             top_crop,
+        'msp_inr_per_quintal':      msp,
+        'distress_price_threshold': distress_thr,
+        'alternative_crops':        alt_crops,
+        'procurement_center':       PROCUREMENT_CENTERS.get(city, 'Contact state agriculture dept'),
+        'crop_insurance_scheme':    'PMFBY — pmfby.gov.in',
+    }
+
+json.dump(reports, open('data/output/exploitation_risk_report.json', 'w'), indent=2)
+print(f"\nExploitation Risk Index (ERI) — {len(reports)} cities:")
+for city, r in sorted(reports.items(), key=lambda x: -x[1]['eri']):
+    flag = '⚠ ALERT' if r['alert'] else '  OK   '
+    print(f"  {flag}  {city:<12} ERI={r['eri']:.3f}  crop={r['primary_crop']:<12} "
+          f"MSP=₹{r['msp_inr_per_quintal']}/q  distress<₹{r['distress_price_threshold']}/q")
+```
+
+---
+
 ## 5. Pipeline Runner
 
 ```python
@@ -1403,6 +1754,9 @@ STEPS = [
     ('Control City Validation',       'pipeline/step12_control_validation.py'),
     ('Recharge Grid Export',          'pipeline/step13_recharge_grid.py'),
     ('Dashboard',                     'pipeline/step14_dashboard.py'),
+    ('Crop Advisory Engine',          'pipeline/step15_crop_advisory.py'),
+    ('Irrigation Strategy Engine',    'pipeline/step16_irrigation_strategy.py'),
+    ('Exploitation Risk Engine',      'pipeline/step17_exploitation_risk.py'),
 ]
 
 for label, script in STEPS:
@@ -1413,6 +1767,9 @@ for label, script in STEPS:
         sys.exit(1)
 
 print("\n✓ VegShift complete. Open http://localhost:8050 for the dashboard.")
+print("  Advisory: data/output/crop_advisory.json")
+print("  Irrigation: data/output/irrigation_strategy.json")
+print("  Exploitation risk: data/output/exploitation_risk_report.json")
 ```
 
 ---
@@ -1428,6 +1785,9 @@ print("\n✓ VegShift complete. Open http://localhost:8050 for the dashboard.")
 | `transition_cvle_linkage.json` | Step 10 | Pre/post viability risk, Wilcoxon p-value, CVLE lag |
 | `viability_trend_report.json` | Step 11 | 25-year regression slope, R², p-value, trend label |
 | `groundwater_recharge_grid.json` | Step 13 | Annual recharge efficiency — 10 cities × 25 years |
+| `crop_advisory.json` | Step 15 | Per-city ranked crop suitability with trajectory penalty scores |
+| `irrigation_strategy.json` | Step 16 | RSI-based irrigation method, avoid-crops list, optimal sowing window, government schemes |
+| `exploitation_risk_report.json` | Step 17 | ERI score, alert flag, MSP, distress price threshold, alternative crops per city |
 
 ---
 
@@ -1464,7 +1824,10 @@ vegshift/
 │       ├── shap_explanation.json
 │       ├── transition_cvle_linkage.json
 │       ├── viability_trend_report.json
-│       └── groundwater_recharge_grid.json
+│       ├── groundwater_recharge_grid.json
+│       ├── crop_advisory.json
+│       ├── irrigation_strategy.json
+│       └── exploitation_risk_report.json
 ├── pipeline/
 │   ├── step0_master_index.py
 │   ├── step1_koppen_classification.py
@@ -1481,7 +1844,10 @@ vegshift/
 │   ├── step11_trend_regression.py
 │   ├── step12_control_validation.py
 │   ├── step13_recharge_grid.py
-│   └── step14_dashboard.py
+│   ├── step14_dashboard.py
+│   ├── step15_crop_advisory.py
+│   ├── step16_irrigation_strategy.py
+│   └── step17_exploitation_risk.py
 ├── models/
 │   ├── tft/
 │   │   └── vegshift-tft-best.ckpt
@@ -1536,6 +1902,9 @@ dash>=2.14
 | 12 | step12 | Control city validation — assert Pune/Kolkata/Mumbai are stable |
 | 13 | step13 | Export groundwater recharge grid (10 cities × 25 years) |
 | 14 | step14 | 8-panel interactive Dash dashboard |
+| 15 | step15 | Rank 14 Indian crops per city by suitability score — current zone + climate trajectory penalty |
+| 16 | step16 | RSI-level irrigation prescription, avoid-crop list, optimal sowing window, government schemes |
+| 17 | step17 | ERI composite score → distress alert with MSP, distress price threshold, alt crops, procurement links |
 
 **SDGs:** SDG 2 (Zero Hunger) · SDG 6 (Clean Water) · SDG 13 (Climate Action)
 
