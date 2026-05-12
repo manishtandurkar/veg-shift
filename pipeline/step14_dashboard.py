@@ -13,6 +13,9 @@ trend_rep   = pd.read_json('data/output/viability_trend_report.json')
 recharge    = json.load(open('data/output/groundwater_recharge_grid.json'))
 linkage     = pd.read_json('data/output/transition_cvle_linkage.json')
 shap_out    = json.load(open('data/output/shap_explanation.json'))
+advisory    = json.load(open('data/output/crop_advisory.json'))
+irrigation  = json.load(open('data/output/irrigation_strategy.json'))
+eri_report  = json.load(open('data/output/exploitation_risk_report.json'))
 
 CITIES = master['city'].unique().tolist()
 CTRL   = ['Pune', 'Kolkata', 'Mumbai']
@@ -89,6 +92,29 @@ app.layout = html.Div([
                    "Red = statistically significant deterioration.",
                    style={'padding': '10px', 'fontFamily': 'sans-serif'}),
             dcc.Graph(id='trend-chart'),
+        ]),
+
+        dcc.Tab(label='Crop Advisory', children=[
+            html.P("Top-ranked crops per city scored on zone fit, temperature, rainfall, "
+                   "groundwater stress, and 5-year climate trajectory.",
+                   style={'padding': '10px', 'fontFamily': 'sans-serif'}),
+            dcc.Dropdown(id='adv-city', options=[{'label': c, 'value': c} for c in CITIES],
+                         value=CITIES[0], clearable=False,
+                         style={'width': '300px', 'margin': '10px'}),
+            dcc.Graph(id='adv-chart'),
+        ]),
+
+        dcc.Tab(label='Irrigation Strategy', children=[
+            html.P("Groundwater stress level and recommended irrigation method per city.",
+                   style={'padding': '10px', 'fontFamily': 'sans-serif'}),
+            dcc.Graph(id='irr-chart'),
+        ]),
+
+        dcc.Tab(label='Exploitation Risk', children=[
+            html.P("Exploitation Risk Index (ERI) per city with breakdown of contributing factors. "
+                   "Orange bar = alert threshold exceeded.",
+                   style={'padding': '10px', 'fontFamily': 'sans-serif'}),
+            dcc.Graph(id='eri-chart'),
         ]),
 
     ])
@@ -249,6 +275,92 @@ def update_trend(_):
     fig.update_layout(title='25-Year Viability Risk Trend (slope of linear regression)',
                       xaxis_title='City', yaxis_title='Slope',
                       showlegend=False, template='plotly_white')
+    return fig
+
+
+@app.callback(Output('adv-chart', 'figure'), Input('adv-city', 'value'))
+def update_advisory(city):
+    data = advisory.get(city, {})
+    crops = data.get('ranked_crops', [])
+    df_a  = pd.DataFrame(crops)
+    df_a['color'] = df_a['zone_match'].map({True: 'steelblue', False: 'lightcoral'})
+    fig = go.Figure(go.Bar(
+        x=df_a['score'], y=df_a['crop'], orientation='h',
+        marker_color=df_a['color'],
+        text=df_a['season'], textposition='inside',
+    ))
+    fig.update_layout(
+        title=f'Crop Advisory — {city}  (zone={data.get("current_zone", "")}, '
+              f'rain trend={data.get("rain_trend_5yr", 0):+.1f} mm/yr, '
+              f'temp trend={data.get("temp_trend_5yr", 0):+.3f} C/yr)',
+        xaxis_title='Advisory Score', yaxis_title='Crop',
+        xaxis_range=[0, 100], template='plotly_white',
+        legend_title='Zone match: blue=yes, red=no',
+    )
+    return fig
+
+
+@app.callback(Output('irr-chart', 'figure'), Input('irr-chart', 'id'))
+def update_irrigation(_):
+    rows = []
+    for city, s in irrigation.items():
+        rows.append({
+            'city':   city,
+            'level':  s['rsi_level'],
+            'method': s['irrigation_method'],
+            'gw_depth': s['gw_depth_mbgl'],
+            'rsi':    s['recharge_efficiency'],
+        })
+    df_i = pd.DataFrame(rows).sort_values('gw_depth', ascending=False)
+    color_map = {'critical': 'crimson', 'stressed': 'tomato',
+                 'moderate': 'orange',  'healthy':  'steelblue'}
+    df_i['color'] = df_i['level'].map(color_map)
+    fig = go.Figure(go.Bar(
+        x=df_i['city'], y=df_i['gw_depth'],
+        marker_color=df_i['color'],
+        text=df_i['method'].str.replace('_', ' '),
+        textposition='outside',
+        customdata=df_i[['level', 'rsi']].values,
+        hovertemplate='%{x}<br>Depth: %{y:.1f} mbgl<br>RSI level: %{customdata[0]}<br>'
+                      'Recharge eff: %{customdata[1]:.4f}<extra></extra>',
+    ))
+    fig.add_hline(y=12, line_dash='dash', line_color='orange',
+                  annotation_text='Stressed threshold (12 mbgl)')
+    fig.add_hline(y=20, line_dash='dash', line_color='crimson',
+                  annotation_text='Critical threshold (20 mbgl)')
+    fig.update_layout(
+        title='Irrigation Strategy — Groundwater Depth & Recommended Method',
+        xaxis_title='City', yaxis_title='Pre-monsoon Depth (mbgl)',
+        template='plotly_white',
+    )
+    return fig
+
+
+@app.callback(Output('eri-chart', 'figure'), Input('eri-chart', 'id'))
+def update_eri(_):
+    components = ['cvle_prob_5yr', 'drought_risk', 'gw_stress',
+                  'trajectory_risk', 'transition_risk']
+    comp_labels = ['CVLE Prob', 'Drought', 'GW Stress', 'Trajectory', 'Transition']
+    cities_sorted = sorted(eri_report.keys(), key=lambda c: -eri_report[c]['eri'])
+    fig = go.Figure()
+    palette = px.colors.sequential.Reds[2:]
+    for i, (comp, label) in enumerate(zip(components, comp_labels)):
+        fig.add_trace(go.Bar(
+            name=label,
+            x=cities_sorted,
+            y=[eri_report[c]['eri_components'][comp] for c in cities_sorted],
+            marker_color=palette[i % len(palette)],
+        ))
+    alert_cities = [c for c in cities_sorted if eri_report[c]['alert']]
+    if alert_cities:
+        fig.add_hline(y=0.65, line_dash='dash', line_color='red',
+                      annotation_text='Alert threshold (ERI=0.65)')
+    fig.update_layout(
+        barmode='stack',
+        title='Exploitation Risk Index (ERI) — Stacked Components',
+        xaxis_title='City', yaxis_title='ERI (0–1)',
+        template='plotly_white',
+    )
     return fig
 
 
