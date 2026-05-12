@@ -1,9 +1,10 @@
 # pipeline/step16_irrigation_strategy.py
 import json, pandas as pd, numpy as np
 
-RSI_CRITICAL = 0.20   # recharge_efficiency < 0.20 → critical
-RSI_STRESSED = 0.35   # recharge_efficiency < 0.35 → stressed
-RSI_MODERATE = 0.50   # recharge_efficiency < 0.50 → moderate
+# recharge_efficiency = depth_recovery_m / rainfall_annual_mm → values ~0.001–0.016
+RSI_CRITICAL = 0.002  # recharge_efficiency < 0.002 → critical
+RSI_STRESSED = 0.004  # recharge_efficiency < 0.004 → stressed
+RSI_MODERATE = 0.006  # recharge_efficiency < 0.006 → moderate
 
 WATER_HEAVY = {'rice', 'sugarcane', 'cotton'}
 

@@ -25,6 +25,9 @@ STEPS = [
     ("Step 12 — Control City Validation",      "pipeline/step12_control_validation.py"),
     ("Step 13 — Recharge Grid Export",         "pipeline/step13_recharge_grid.py"),
     ("Step 14 — Dashboard",                    "pipeline/step14_dashboard.py"),
+    ("Step 15 — Crop Advisory",                "pipeline/step15_crop_advisory.py"),
+    ("Step 16 — Irrigation Strategy",          "pipeline/step16_irrigation_strategy.py"),
+    ("Step 17 — Exploitation Risk",            "pipeline/step17_exploitation_risk.py"),
 ]
 
 
@@ -42,7 +45,7 @@ def main(dry_run: bool = False) -> None:
             print(f"ERROR in {script}. Halting pipeline.")
             sys.exit(1)
     if dry_run:
-        print("\n[dry-run complete] All 16 steps listed. No scripts executed.")
+        print("\n[dry-run complete] All 17 steps listed. No scripts executed.")
     else:
         print("\nVegShift complete. Open http://localhost:8050 for the dashboard.")
 
