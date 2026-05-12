@@ -24,11 +24,12 @@ STEPS = [
     ("Step 11 — Trend Regression",             "pipeline/step11_trend_regression.py"),
     ("Step 12 — Control City Validation",      "pipeline/step12_control_validation.py"),
     ("Step 13 — Recharge Grid Export",         "pipeline/step13_recharge_grid.py"),
-    ("Step 14 — Dashboard",                    "pipeline/step14_dashboard.py"),
     ("Step 15 — Crop Advisory",                "pipeline/step15_crop_advisory.py"),
     ("Step 16 — Irrigation Strategy",          "pipeline/step16_irrigation_strategy.py"),
     ("Step 17 — Exploitation Risk",            "pipeline/step17_exploitation_risk.py"),
 ]
+
+DASHBOARD = ("Step 14 — Dashboard", "pipeline/step14_dashboard.py")
 
 
 def main(dry_run: bool = False) -> None:
@@ -44,10 +45,16 @@ def main(dry_run: bool = False) -> None:
         if result.returncode != 0:
             print(f"ERROR in {script}. Halting pipeline.")
             sys.exit(1)
+
+    label, script = DASHBOARD
+    print(f"\n{label}")
+    print("-" * 60)
     if dry_run:
+        print(f"  [dry-run] would launch in background: python {script}")
         print("\n[dry-run complete] All 17 steps listed. No scripts executed.")
     else:
-        print("\nVegShift complete. Open http://localhost:8050 for the dashboard.")
+        subprocess.Popen([sys.executable, script])
+        print("\nVegShift complete. Dashboard launching at http://localhost:8050")
 
 
 if __name__ == "__main__":
