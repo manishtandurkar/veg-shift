@@ -14,7 +14,7 @@ The pipeline does three main things:
 2. Detects climate zone transitions and labels crop viability loss events.
 3. Trains models and explainability tools to predict and interpret those events.
 
-The implemented pipeline currently runs from Step 0 to Step 9.
+The pipeline runs all 17 steps — Steps 0 to 17.
 
 ## One-Time Setup
 
@@ -45,15 +45,21 @@ python pipeline/step6_tft_train.py
 python pipeline/step7_tft_predict.py
 python pipeline/step8_baselines.py
 python pipeline/step9_shap_explainability.py
+python pipeline/step10_causal_linkage.py
+python pipeline/step11_trend_regression.py
+python pipeline/step12_control_validation.py
+python pipeline/step13_recharge_grid.py
+python pipeline/step15_crop_advisory.py
+python pipeline/step16_irrigation_strategy.py
+python pipeline/step17_exploitation_risk.py
+python pipeline/step14_dashboard.py
 ```
 
-If you want to run the whole validated portion of the pipeline in one shot, you can also use:
+To run all 17 steps in one shot (dashboard launches in background at the end):
 
 ```powershell
 python run_vegshift.py
 ```
-
-Note: `run_vegshift.py` lists later steps too, but only steps 0 to 9 are implemented in this workspace right now.
 
 ## Folder Map
 
@@ -478,14 +484,117 @@ What to expect:
 - A global feature ranking.
 - A per-city feature ranking.
 
+### Step 10 - Test causal link between transitions and CVLE
+
+Script: [pipeline/step10_causal_linkage.py](pipeline/step10_causal_linkage.py)
+
+What it does:
+
+- For each detected transition, compares CVLE risk in the 3 years before vs. after using a Wilcoxon signed-rank test.
+- Records the CVLE lag: years between transition and first CVLE.
+
+Output:
+
+- [data/output/transition_cvle_linkage.json](data/output/transition_cvle_linkage.json)
+
+### Step 11 - Fit a 25-year viability trend per city
+
+Script: [pipeline/step11_trend_regression.py](pipeline/step11_trend_regression.py)
+
+What it does:
+
+- Runs the trained Random Forest on all 250 rows to get viability risk probabilities.
+- Fits a linear regression per city (year vs. risk) and labels the trend as deteriorating, stable, or improving.
+
+Output:
+
+- [data/output/viability_trend_report.json](data/output/viability_trend_report.json)
+
+### Step 12 - Validate control cities
+
+Script: [pipeline/step12_control_validation.py](pipeline/step12_control_validation.py)
+
+What it does:
+
+- Asserts that Pune, Kolkata, and Mumbai show stable trends, zero CVLE events, and zero transitions.
+- Prints a warning if any control city fails.
+
+Output:
+
+- Printed validation report (no output file).
+
+### Step 13 - Export groundwater recharge grid
+
+Script: [pipeline/step13_recharge_grid.py](pipeline/step13_recharge_grid.py)
+
+What it does:
+
+- Pivots recharge efficiency into a nested city → year → value JSON for the dashboard.
+
+Output:
+
+- [data/output/groundwater_recharge_grid.json](data/output/groundwater_recharge_grid.json)
+
+### Step 15 - Crop advisory engine
+
+Script: [pipeline/step15_crop_advisory.py](pipeline/step15_crop_advisory.py)
+
+What it does:
+
+- Scores all 14 Indian crops against each city's current climate conditions and 5-year trajectory.
+- Scoring axes: zone compatibility, temperature stress, rainfall adequacy, groundwater stress, trajectory penalty.
+
+Output:
+
+- [data/output/crop_advisory.json](data/output/crop_advisory.json)
+
+### Step 16 - Irrigation strategy engine
+
+Script: [pipeline/step16_irrigation_strategy.py](pipeline/step16_irrigation_strategy.py)
+
+What it does:
+
+- Classifies each city into a Recharge Stress Index (RSI) level (critical / stressed / moderate / healthy).
+- Prescribes an irrigation method, lists crops to avoid, derives the optimal kharif sowing window, and maps government schemes.
+- Note: RSI thresholds are calibrated to the actual `recharge_efficiency` data scale (0.002 / 0.004 / 0.006).
+
+Output:
+
+- [data/output/irrigation_strategy.json](data/output/irrigation_strategy.json)
+
+### Step 17 - Exploitation risk engine
+
+Script: [pipeline/step17_exploitation_risk.py](pipeline/step17_exploitation_risk.py)
+
+What it does:
+
+- Computes an Exploitation Risk Index (ERI) from five climate-derived signals (CVLE probability, drought risk, GW stress, trajectory risk, transition risk).
+- When ERI >= 0.65 triggers an alert with MSP, distress price threshold (80% of MSP), alternative crops, and procurement centre links.
+
+Output:
+
+- [data/output/exploitation_risk_report.json](data/output/exploitation_risk_report.json)
+
+### Step 14 - Dashboard (runs in background)
+
+Script: [pipeline/step14_dashboard.py](pipeline/step14_dashboard.py)
+
+What it does:
+
+- Launches an 11-panel interactive Dash/Plotly app at `http://localhost:8050`.
+- `run_vegshift.py` launches this in the background after all other steps complete so it does not block the terminal.
+- The three new panels (Crop Advisory, Irrigation Strategy, Exploitation Risk) display the outputs from steps 15-17.
+
 ## Final Output Summary
 
-After steps 0 to 9, you should have:
+After all 17 steps, you should have:
 
 - Clean processed source data in `data/processed/`.
 - Transition and prediction reports in `data/output/`.
 - A trained TFT checkpoint in `models/tft/`.
 - Baseline model files in `models/baselines/`.
+- Advisory outputs: `crop_advisory.json`, `irrigation_strategy.json`, `exploitation_risk_report.json`.
+- Dashboard running at `http://localhost:8050` (11 panels).
 
 ## How To Verify Everything Ran Correctly
 
@@ -496,6 +605,9 @@ Check these files exist:
 - [data/output/tft_predictions.csv](data/output/tft_predictions.csv)
 - [data/output/baseline_metrics.json](data/output/baseline_metrics.json)
 - [data/output/shap_explanation.json](data/output/shap_explanation.json)
+- [data/output/crop_advisory.json](data/output/crop_advisory.json)
+- [data/output/irrigation_strategy.json](data/output/irrigation_strategy.json)
+- [data/output/exploitation_risk_report.json](data/output/exploitation_risk_report.json)
 - At least one TFT checkpoint in [models/tft](models/tft)
 - Baseline files in [models/baselines](models/baselines)
 

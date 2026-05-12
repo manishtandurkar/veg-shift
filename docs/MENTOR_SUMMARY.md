@@ -43,11 +43,16 @@ STEP 4: Train & Explain
   • Explains: Which features matter most? (SHAP analysis)
   • Validates: Control cities (Pune, Mumbai, Kolkata) remain stable ✓
 
-STEP 5: Deliver Outputs
+STEP 5: Advisory Engines
+  • Crop advisory: rank 14 crops per city with 5-yr trajectory penalty
+  • Irrigation strategy: RSI-level water prescriptions + govt scheme links
+  • Exploitation risk: ERI score, distress alert, MSP, procurement centres
+
+STEP 6: Deliver Outputs
   • Timestamped CVLE events with diagnostic reasons
   • 25-year viability trend (improving or deteriorating?)
   • Causal link: Does climate transition → crop loss? (Wilcoxon test)
-  • Interactive dashboard for exploration
+  • Interactive 11-panel dashboard for exploration
 ```
 
 ---
@@ -109,7 +114,7 @@ Use:    Reference thresholds
 
 ---
 
-## The 14-Step Pipeline Simplified
+## The 17-Step Pipeline Simplified
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -165,9 +170,10 @@ Use:    Reference thresholds
                             ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │ DASHBOARD: http://localhost:8050                                │
-│ 8 panels: sowing drift, dual-deficit heatmap, CVLE timeline,   │
+│ 11 panels: sowing drift, dual-deficit heatmap, CVLE timeline,  │
 │ transition-CVLE linkage, recharge trends, Koppen history,      │
-│ SHAP importance, viability trend report                        │
+│ SHAP importance, viability trend report,                       │
+│ crop advisory, irrigation strategy, exploitation risk          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -502,7 +508,10 @@ joblib        → Save/load trained models
 ### Outputs ✓
 - [x] 5 JSON reports (transitions, CVLEs, explanations, causal link, trends)
 - [x] 4 trained models (TFT, RF, LR, LSTM)
-- [x] Interactive dashboard (8 panels)
+- [x] Interactive dashboard (11 panels)
+- [x] Crop advisory (14-crop ranked suitability per city with trajectory penalty)
+- [x] Irrigation strategy (RSI level, method, govt schemes per city)
+- [x] Exploitation risk report (ERI, distress alert, MSP, procurement links)
 - [x] All reproducible from raw data
 
 ---

@@ -11,7 +11,7 @@ It fuses three independent datasets (atmospheric climate, groundwater levels, cr
 **Primary model:** Temporal Fusion Transformer (5-year lookback, quantile output)  
 **Baselines:** Random Forest, Logistic Regression, LSTM  
 **Explainability:** SHAP (TreeExplainer), TFT attention weights  
-**Dashboard:** 8-panel interactive Dash/Plotly app at `localhost:8050`
+**Dashboard:** 11-panel interactive Dash/Plotly app at `localhost:8050`
 
 See [AGENTS.md](AGENTS.md) for full pipeline design and dataset specifications.  
 See [docs/explanation.md](docs/explanation.md) for a beginner-friendly walkthrough of every concept and step.
@@ -108,7 +108,12 @@ python pipeline/step11_trend_regression.py     # Linear slope of CVLE risk per c
 python pipeline/step12_control_validation.py   # Validate control cities (Pune, Kolkata, Mumbai)
 python pipeline/step13_recharge_grid.py        # Export recharge grid JSON for dashboard
 
-# Phase 5: Dashboard (Step 14)
+# Phase 5: Advisory Engines (Steps 15-17)
+python pipeline/step15_crop_advisory.py        # Rank 14 Indian crops per city with trajectory penalty
+python pipeline/step16_irrigation_strategy.py  # RSI-level irrigation prescriptions + govt schemes
+python pipeline/step17_exploitation_risk.py    # ERI score, distress alert, MSP, procurement links
+
+# Phase 6: Dashboard (Step 14 — launches in background after pipeline completes)
 python pipeline/step14_dashboard.py            # Launch Dash app at localhost:8050
 ```
 
@@ -159,6 +164,9 @@ pytest tests/
 | `tft_predictions.csv` | TFT quantile predictions (10th–90th percentile) for all city-years |
 | `groundwater_recharge_grid.json` | Recharge efficiency grid: city → year → value |
 | `baseline_metrics.json` | RF / LR / LSTM test-set F1, accuracy, ROC-AUC |
+| `crop_advisory.json` | Per-city ranked suitability scores for 14 Indian crops with 5-yr trajectory penalty |
+| `irrigation_strategy.json` | RSI level, irrigation method, avoid-crop list, optimal sowing window, government schemes |
+| `exploitation_risk_report.json` | ERI score, alert flag, MSP, distress price threshold, alternative crops, procurement links |
 
 ### Models (`data/output/`)
 
@@ -174,9 +182,9 @@ pytest tests/
 
 ## Dashboard
 
-After running Step 14, open `http://localhost:8050`.
+After running the pipeline, open `http://localhost:8050`. The dashboard launches automatically in the background when `run_vegshift.py` completes.
 
-Eight panels:
+Eleven panels:
 
 | # | Panel | What it shows |
 |---|---|---|
@@ -188,6 +196,9 @@ Eight panels:
 | 6 | Koppen Zone History | Zone label per city per year (scatter/timeline) |
 | 7 | SHAP Feature Importance | Global + per-city feature contribution bar charts |
 | 8 | Trend Report | 25-year viability risk slope per city, color-coded by trend |
+| 9 | Crop Advisory | Top-ranked crops per city scored on zone fit, temperature, rainfall, GW stress, and 5-yr trajectory |
+| 10 | Irrigation Strategy | Groundwater depth per city with RSI level colour coding and recommended irrigation method |
+| 11 | Exploitation Risk | Stacked ERI component bar chart per city with alert threshold line |
 
 All charts support hover tooltips and city filtering.
 
@@ -213,7 +224,7 @@ Pune, Kolkata, and Mumbai are expected to remain climatically stable and agricul
 
 ```
 VegShift/
-  pipeline/          # 17 step scripts (step0 through step14)
+  pipeline/          # 17 step scripts (step0 through step17)
   data/
     raw/             # Original unmodified source files
       climate/       # DS1: daily climate CSV

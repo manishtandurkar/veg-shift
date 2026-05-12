@@ -211,7 +211,9 @@ Step 6-9:  Train ML Models and Explain them
    |
 Step 10-13: Analyze results + Generate reports
    |
-Step 14:   Build interactive dashboard
+Step 15-17: Crop Advisory + Irrigation Strategy + Exploitation Risk
+   |
+Step 14:   Build interactive dashboard (launches in background)
 ```
 
 ---
@@ -550,12 +552,57 @@ This lets the dashboard show per-city aquifer health trends over time.
 
 ---
 
-### Phase 5: Visualization (Step 14)
+### Phase 5: Advisory Engines (Steps 15–17)
+
+#### Step 15: Crop Advisory Engine
+**Input:** `vegshift_master.csv`, `viability_trend_report.json`
+**Output:** `data/output/crop_advisory.json`
+
+Scores all 14 Indian crops (wheat, mustard, rice, cotton, sugarcane, groundnut, sorghum, ragi, chickpea, lentil, maize, sunflower, bajra, barley) for each city on five axes — zone compatibility (30 pts), temperature stress (20 pts), rainfall adequacy (20 pts), groundwater stress (15 pts), and a 5-year climate **trajectory penalty** (15 pts). The trajectory penalty is the key innovation: a crop that is borderline viable now but whose climate fit is narrowing scores lower than a drought-tolerant alternative that is gaining headroom. Results are sorted descending per city.
+
+---
+
+#### Step 16: Irrigation Strategy Engine
+**Input:** `vegshift_master.csv`, `kaggle_climate.csv`, `crop_advisory.json`
+**Output:** `data/output/irrigation_strategy.json`
+
+Classifies each city into one of four **Recharge Stress Index (RSI)** levels based on `recharge_efficiency` (computed as `depth_recovery_m / rainfall_annual_mm`) and `pre_monsoon_depth_mbgl`:
+
+| RSI Level | Condition | Method Prescribed |
+|-----------|-----------|------------------|
+| Critical | efficiency < 0.002 OR depth > 20 mbgl | Drip only |
+| Stressed | efficiency < 0.004 OR depth > 12 mbgl | Drip or sprinkler + rainwater harvesting |
+| Moderate | efficiency < 0.006 | Sprinkler recommended |
+| Healthy | otherwise | Conventional acceptable |
+
+Also derives the optimal kharif sowing window from peak monthly rainfall and links each city to applicable government schemes (PMKSY, PM-KUSUM, MGNREGS, RKVY, PMFBY).
+
+---
+
+#### Step 17: Exploitation Risk Engine
+**Input:** `vegshift_master.csv`, `viability_trend_report.json`, `transition_cvle_linkage.json`, `crop_advisory.json`
+**Output:** `data/output/exploitation_risk_report.json`
+
+Computes an **Exploitation Risk Index (ERI)** — a weighted composite of five climate-derived signals:
+
+| Component | Weight |
+|-----------|--------|
+| CVLE probability (5-yr rolling mean) | 0.30 |
+| Drought risk (latest year crop_water_deficit) | 0.25 |
+| Groundwater stress (depth / 25 mbgl ceiling) | 0.20 |
+| Viability trajectory risk (slope from Step 11) | 0.15 |
+| Climate transition risk (worst risk_delta from Step 10) | 0.10 |
+
+When ERI ≥ 0.65, an alert is triggered with the MSP (Minimum Support Price 2024-25), distress price threshold (80% of MSP), alternative crops, and state procurement centre URL.
+
+---
+
+### Phase 6: Visualization (Step 14)
 
 #### Step 14: Interactive Dashboard
 **Output:** Web app at `http://localhost:8050`
 
-Built with Plotly Dash. Eight interactive panels:
+Built with Plotly Dash. Eleven interactive panels. Launched automatically in the background by `run_vegshift.py` after all analysis steps complete.
 
 1. **Sowing Window Drift** — monsoon onset day vs. optimal sowing date per city, with transition year markers
 2. **Dual-Deficit Heatmap** — city × year grid (red = both systems failed that year)
@@ -565,10 +612,13 @@ Built with Plotly Dash. Eight interactive panels:
 6. **Köppen Zone History** — zone label per city per year as a scatter/timeline plot
 7. **SHAP Feature Importance** — bar charts of global and per-city feature contributions
 8. **Trend Report** — 25-year viability risk slope per city, color-coded by trend
+9. **Crop Advisory** — top-ranked crops per city scored on zone fit, temperature, rainfall, GW stress, and trajectory
+10. **Irrigation Strategy** — groundwater depth per city with RSI level colour coding and recommended method
+11. **Exploitation Risk** — stacked ERI component bar chart per city with alert threshold line
 
 All charts are interactive: hover for values, filter by city.
 
-Start with:
+To launch the dashboard standalone:
 ```bash
 python pipeline/step14_dashboard.py
 ```
@@ -616,6 +666,9 @@ Then open `http://localhost:8050` in your browser.
 | `tft_attention_weights.json` | Which past years the TFT model weighted | Delhi 2020: last year 40%, year-2: 30% |
 | `groundwater_recharge_grid.json` | Annual recharge efficiency for all cities | Delhi 2020: 0.008 |
 | `baseline_metrics.json` | RF / LR / LSTM test-set accuracy | RF: 0.87 F1, LR: 0.79 F1 |
+| `crop_advisory.json` | 14-crop ranked suitability scores per city with 5-yr trajectory penalty | Ahmedabad top crop: cotton (97.8) |
+| `irrigation_strategy.json` | RSI level, irrigation method, avoid-crops, sowing window, govt schemes | Delhi: critical, drip only |
+| `exploitation_risk_report.json` | ERI score, alert, MSP, distress threshold, alt crops, procurement links | Chennai ERI=0.21 (OK) |
 
 ---
 
@@ -770,7 +823,8 @@ VegShift combines three datasets (climate, groundwater, crop requirements) to de
 2. Merges into master table + creates CVLE labels (Step 5)
 3. Trains ML models: TFT + RF + LR + LSTM (Steps 6–9)
 4. Analyzes and validates findings (Steps 10–13)
-5. Visualizes all outputs in an interactive dashboard (Step 14)
+5. Generates forward-looking advisory outputs (Steps 15–17)
+6. Visualizes all outputs in an 11-panel interactive dashboard (Step 14)
 
 **Key innovations:**
 - Dual-deficit indicator: simultaneous atmospheric + subsurface failure

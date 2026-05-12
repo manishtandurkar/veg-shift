@@ -129,14 +129,14 @@ Geospatial maps (GeoTIFFs) from the UN Food and Agriculture Organization (FAO) s
 
 ---
 
-## The 14-Step Pipeline in Plain English
+## The 17-Step Pipeline in Plain English
 
 ### What is a "Pipeline"?
 
 A pipeline is a series of scripts that run one after another. Each step takes inputs (files), does some processing, and produces outputs (new files) that the next step uses.
 
 ```
-Step 0 → Step 1 → Step 2 → ... → Step 14 → Dashboard
+Step 0 → Step 1 → Step 2 → ... → Step 13 → Steps 15-17 → Dashboard (Step 14)
   ↓         ↓         ↓              ↓
 Input     Process   Process       Output
 ```

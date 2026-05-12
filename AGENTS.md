@@ -1500,10 +1500,12 @@ Each city is classified into one of four **Recharge Stress Index (RSI)** levels 
 
 | RSI Level | Condition | Irrigation Prescribed | Crops to Avoid |
 |-----------|-----------|----------------------|----------------|
-| Critical | efficiency < 0.20 OR depth > 20 mbgl | Drip only | Rice, sugarcane, cotton |
-| Stressed | efficiency < 0.35 OR depth > 12 mbgl | Drip or sprinkler + rainwater harvesting | Rice, sugarcane |
-| Moderate | efficiency < 0.50 | Sprinkler recommended | Sugarcane |
+| Critical | efficiency < 0.002 OR depth > 20 mbgl | Drip only | Rice, sugarcane, cotton |
+| Stressed | efficiency < 0.004 OR depth > 12 mbgl | Drip or sprinkler + rainwater harvesting | Rice, sugarcane |
+| Moderate | efficiency < 0.006 | Sprinkler recommended | Sugarcane |
 | Healthy | otherwise | Conventional acceptable | — |
+
+Note: thresholds are calibrated to the actual data scale where `recharge_efficiency = depth_recovery_m / rainfall_annual_mm` (typical range 0.001–0.016).
 
 **Optimal sowing window** is derived from the daily climate file: the kharif month (June–September) with the highest long-run average rainfall is identified per city, and the recommendation is to sow 2–3 weeks before that peak to exploit the moisture pulse without waterlogging risk.
 
@@ -1517,9 +1519,10 @@ Each city is classified into one of four **Recharge Stress Index (RSI)** levels 
 # pipeline/step16_irrigation_strategy.py
 import json, pandas as pd, numpy as np
 
-RSI_CRITICAL = 0.20   # recharge_efficiency < 0.20 → critical
-RSI_STRESSED = 0.35   # recharge_efficiency < 0.35 → stressed
-RSI_MODERATE = 0.50   # recharge_efficiency < 0.50 → moderate
+# recharge_efficiency = depth_recovery_m / rainfall_annual_mm → values ~0.001–0.016
+RSI_CRITICAL = 0.002  # recharge_efficiency < 0.002 → critical
+RSI_STRESSED = 0.004  # recharge_efficiency < 0.004 → stressed
+RSI_MODERATE = 0.006  # recharge_efficiency < 0.006 → moderate
 
 WATER_HEAVY = {'rice', 'sugarcane', 'cotton'}
 
@@ -1725,7 +1728,7 @@ print(f"\nExploitation Risk Index (ERI) — {len(reports)} cities:")
 for city, r in sorted(reports.items(), key=lambda x: -x[1]['eri']):
     flag = '⚠ ALERT' if r['alert'] else '  OK   '
     print(f"  {flag}  {city:<12} ERI={r['eri']:.3f}  crop={r['primary_crop']:<12} "
-          f"MSP=₹{r['msp_inr_per_quintal']}/q  distress<₹{r['distress_price_threshold']}/q")
+          f"MSP=Rs{r['msp_inr_per_quintal']}/q  distress<Rs{r['distress_price_threshold']}/q")
 ```
 
 ---
@@ -1753,11 +1756,12 @@ STEPS = [
     ('Trend Regression M2',           'pipeline/step11_trend_regression.py'),
     ('Control City Validation',       'pipeline/step12_control_validation.py'),
     ('Recharge Grid Export',          'pipeline/step13_recharge_grid.py'),
-    ('Dashboard',                     'pipeline/step14_dashboard.py'),
     ('Crop Advisory Engine',          'pipeline/step15_crop_advisory.py'),
     ('Irrigation Strategy Engine',    'pipeline/step16_irrigation_strategy.py'),
     ('Exploitation Risk Engine',      'pipeline/step17_exploitation_risk.py'),
 ]
+
+DASHBOARD = ('Dashboard', 'pipeline/step14_dashboard.py')
 
 for label, script in STEPS:
     print(f"\n{'='*60}\n{label}\n{'='*60}")
@@ -1766,7 +1770,9 @@ for label, script in STEPS:
         print(f"ERROR in {script}. Halting.")
         sys.exit(1)
 
-print("\n✓ VegShift complete. Open http://localhost:8050 for the dashboard.")
+# Dashboard runs last in the background so it doesn't block the pipeline
+subprocess.Popen([sys.executable, DASHBOARD[1]])
+print("\n✓ VegShift complete. Dashboard launching at http://localhost:8050")
 print("  Advisory: data/output/crop_advisory.json")
 print("  Irrigation: data/output/irrigation_strategy.json")
 print("  Exploitation risk: data/output/exploitation_risk_report.json")
@@ -1901,7 +1907,7 @@ dash>=2.14
 | 11 | step11 | M2: Linear trend regression on 25-yr viability risk per city |
 | 12 | step12 | Control city validation — assert Pune/Kolkata/Mumbai are stable |
 | 13 | step13 | Export groundwater recharge grid (10 cities × 25 years) |
-| 14 | step14 | 8-panel interactive Dash dashboard |
+| 14 | step14 | 11-panel interactive Dash dashboard (launched in background after step 17) |
 | 15 | step15 | Rank 14 Indian crops per city by suitability score — current zone + climate trajectory penalty |
 | 16 | step16 | RSI-level irrigation prescription, avoid-crop list, optimal sowing window, government schemes |
 | 17 | step17 | ERI composite score → distress alert with MSP, distress price threshold, alt crops, procurement links |
