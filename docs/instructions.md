@@ -611,6 +611,54 @@ Check these files exist:
 - At least one TFT checkpoint in [models/tft](models/tft)
 - Baseline files in [models/baselines](models/baselines)
 
+## Product Web App
+
+After running the pipeline, you can serve a decision-first UI on top of the outputs.
+
+### Build the frontend payload
+
+```powershell
+python tools/build_frontend_payload.py
+```
+
+Reads all JSONs in `data/output/` and `docs/evidence_sources.json`, writes
+`data/output/frontend_payload.json`.
+
+### Start the API
+
+```powershell
+uvicorn api.app:app --reload --port 8000
+```
+
+Endpoints: `GET /summary`, `GET /city/{city}`, `GET /advisory/{city}`,
+`GET /irrigation/{city}`, `GET /risk/{city}`, `GET /evidence/{city}`,
+`POST /chat`.
+
+### Start the frontend
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+Opens at `http://localhost:5173`. The app has nine pages:
+
+| Route | Page |
+|---|---|
+| `/` | Landing — project overview, risk meters per city |
+| `/intake` | Intake — farmer profile form |
+| `/dashboard` | Dashboard — ERI gauge, advisory cards, action steps |
+| `/city` | City Overview — zone transitions, CVLE timeline, evidence |
+| `/crops` | Crop Advisor — 14-crop ranked suitability table |
+| `/water` | Water & Irrigation — RSI level, method, govt schemes |
+| `/economic` | Economic Protection — ERI breakdown, MSP alert |
+| `/explain` | Explainability — SHAP + TFT attention weights |
+| `/reports` | Reports — all outputs in one view |
+
+A persistent chatbot (bottom-right of every page) answers questions about the
+pipeline using a TF-IDF knowledge base built from `docs/` and `data/output/`.
+
 ## Simple One-Line Explanation
 
 VegShift takes raw climate, groundwater, and crop suitability data, converts them into yearly city-level features, labels viability loss, trains prediction models, and then explains what the models learned.

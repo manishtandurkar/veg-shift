@@ -121,8 +121,8 @@ python pipeline/step14_dashboard.py            # Launch Dash app at localhost:80
 
 ## Product Web App (FastAPI + React)
 
-VegShift now includes a product-grade web app that consumes precomputed outputs and
-serves a decision-first UI.
+VegShift includes a product-grade web app that consumes precomputed pipeline outputs
+and serves a decision-first UI for farmers, researchers, and policymakers.
 
 ### 1) Build the frontend payload
 
@@ -130,14 +130,27 @@ serves a decision-first UI.
 python tools/build_frontend_payload.py
 ```
 
-This reads existing outputs in `data/output/` and evidence in
-`docs/evidence_sources.json`, then writes `data/output/frontend_payload.json`.
+Reads `data/output/` and `docs/evidence_sources.json`, writes `data/output/frontend_payload.json`.
 
 ### 2) Start the API
 
 ```bash
 uvicorn api.app:app --reload --port 8000
 ```
+
+**API endpoints:**
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/` | Service info and last-updated timestamp |
+| GET | `/meta` | Pipeline metadata |
+| GET | `/summary` | Risk summary for all 10 cities |
+| GET | `/city/{city}` | Full city detail (advisory, irrigation, evidence) |
+| GET | `/advisory/{city}` | Crop advisory rankings for a city |
+| GET | `/irrigation/{city}` | Irrigation strategy for a city |
+| GET | `/risk/{city}` | Risk level and ERI for a city |
+| GET | `/evidence/{city}` | Evidence citations for a city |
+| POST | `/chat` | AI chatbot — body: `{message, history}` |
 
 ### 3) Start the frontend
 
@@ -152,6 +165,30 @@ The frontend expects the API at `http://localhost:8000`. Override with:
 ```bash
 set VITE_API_BASE_URL=http://localhost:8000
 ```
+
+### Pages
+
+| Route | Page | Description |
+|---|---|---|
+| `/` | Landing | Project overview, pipeline summary, live risk meters per city |
+| `/intake` | Intake | Farmer profile form (name, city, land size, primary crop) |
+| `/dashboard` | Dashboard | ERI gauge, risk meter, advisory cards, trend strip, action steps |
+| `/city` | City Overview | 25-year climate trajectory, zone transitions, CVLE timeline, evidence |
+| `/crops` | Crop Advisor | 14-crop ranked suitability table with trajectory penalty scores |
+| `/water` | Water & Irrigation | RSI level, irrigation method, recharge trend, government schemes |
+| `/economic` | Economic Protection | ERI components, MSP alert, distress threshold, procurement links |
+| `/explain` | Explainability | SHAP feature importance and TFT attention weights |
+| `/reports` | Reports | Full city report with all outputs in one view |
+
+### Chatbot
+
+A persistent AI assistant is available on every page. It uses a TF-IDF knowledge base
+built from all `docs/` markdown files and key `data/output/` JSON files. Responses
+include source attribution badges so users can trace answers back to specific pipeline
+outputs or documentation.
+
+Suggested questions are surfaced on first open; conversation history is maintained per
+session.
 
 ### Evidence sources
 
@@ -273,9 +310,28 @@ VegShift/
       gaez/          # DS3: crop suitability TIFFs
     processed/       # Intermediate cleaned/aggregated files
     output/          # Final analysis outputs and trained models
+  api/
+    app.py           # FastAPI app — 9 REST endpoints + POST /chat
+    chatbot.py       # TF-IDF chatbot backed by docs/ and data/output/
+    data_store.py    # Loads and caches frontend_payload.json
+  web/
+    src/
+      pages/         # Landing, Dashboard, CityOverview, CropAdvisor, WaterIrrigation,
+                     # EconomicProtection, Explainability, Reports, Intake
+      components/    # Layout, Chatbot, RiskMeter, TrendStrip, AdvisoryCard,
+                     # ActionSteps, EvidenceCard, GlossaryModal, CitySelector
+      state/         # CityContext, FarmerProfileContext
+      hooks/         # useCityDetail
+  tools/
+    build_frontend_payload.py  # Assembles data/output/frontend_payload.json
   tests/             # pytest test suite (29 tests)
   docs/
-    explanation.md   # Beginner-friendly walkthrough of all concepts and steps
+    explanation.md        # Beginner-friendly walkthrough of all concepts and steps
+    instructions.md       # Step-by-step runbook for running the pipeline
+    data_flow.md          # Mermaid data flow diagram
+    LAYMAN_GUIDE.md       # Plain-language guide
+    MENTOR_SUMMARY.md     # High-level summary for reviewers
+    READING_ROADMAP.md    # Suggested reading order
   run_vegshift.py    # Pipeline orchestrator (--dry-run flag supported)
   AGENTS.md          # Full technical spec: datasets, algorithms, step implementations
   requirements.txt   # Python dependencies

@@ -54,11 +54,31 @@ classDef largeText font-size:18px;
     G[data/output/groundwater_recharge_grid.json] --> Dashboard
   end
 
+  subgraph WebApp["Product Web App"]
+    Payload["tools/build_frontend_payload.py\n→ data/output/frontend_payload.json"]
+    API["api/app.py\nFastAPI — GET /city /advisory /irrigation /risk /evidence /summary\nPOST /chat"]
+    Chatbot["api/chatbot.py\nTF-IDF knowledge base\n(docs/ + data/output/)"]
+    Frontend["web/ React 18\n9 pages: Landing, Dashboard, City, Crops,\nWater, Economic, Explainability, Reports, Intake"]
+  end
+
+  A --> Payload
+  B --> Payload
+  C --> Payload
+  D --> Payload
+  E --> Payload
+  F --> Payload
+  G --> Payload
+  Payload --> API
+  API --> Frontend
+  Chatbot --> API
+
   style RawClimate fill:#f9f,stroke:#333
   style RawCGWB fill:#ff9,stroke:#333
   style RawGAEZ fill:#9ff,stroke:#333
   style Join fill:#cfc,stroke:#333
   style Dashboard fill:#ccf,stroke:#333
+  style API fill:#ffd,stroke:#333
+  style Frontend fill:#dff,stroke:#333
 
   %% apply largeText class to main nodes for readability
   class RawClimate,Preprocess,ClimateAgg,RawCGWB,GWagg,RawGAEZ,GAEZ,Koppen,TransDetect,Master,Join,TFTtrain,TFTpredict,Baselines,SHAP,Causal,Trend,RechargeGrid,Dashboard largeText;

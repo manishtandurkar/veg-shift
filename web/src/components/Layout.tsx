@@ -6,7 +6,7 @@ import Chatbot from "./Chatbot";
 import { useCityContext } from "../state/CityContext";
 
 const Layout: React.FC = () => {
-  const { loading, error, meta } = useCityContext();
+  const { loading, error } = useCityContext();
   const [glossaryOpen, setGlossaryOpen] = useState(false);
 
   return (
@@ -40,21 +40,6 @@ const Layout: React.FC = () => {
           </button>
         </div>
       </header>
-
-      {(loading || error || meta?.last_updated) && (
-        <section className="status-bar">
-          {loading && <span>Loading pipeline data…</span>}
-          {error && <span className="error">⚠ {error}</span>}
-          {meta?.last_updated && (
-            <span className="muted">
-              Pipeline run: {new Date(meta.last_updated).toLocaleString("en-IN", {
-                day: "2-digit", month: "short", year: "numeric",
-                hour: "2-digit", minute: "2-digit",
-              })}
-            </span>
-          )}
-        </section>
-      )}
 
       <main className="app-main">
         <Outlet />
