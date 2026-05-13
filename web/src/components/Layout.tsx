@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import CitySelector from "./CitySelector";
 import GlossaryModal from "./GlossaryModal";
+import Chatbot from "./Chatbot";
 import { useCityContext } from "../state/CityContext";
 
 const Layout: React.FC = () => {
@@ -51,6 +52,7 @@ const Layout: React.FC = () => {
       </footer>
 
       <GlossaryModal open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
+      <Chatbot />
     </div>
   );
 };
