@@ -1,0 +1,26 @@
+import React from "react";
+import type { EvidenceItem } from "../api/types";
+
+const EvidenceCard: React.FC<{ item: EvidenceItem }> = ({ item }) => {
+  return (
+    <article className={`card evidence-card ${item.is_placeholder ? "placeholder" : ""}`}>
+      <div className="evidence-header">
+        <h4>{item.title}</h4>
+        <span>{item.source}</span>
+      </div>
+      <p>{item.summary}</p>
+      <div className="evidence-footer">
+        <span>{item.date}</span>
+        {item.url ? (
+          <a href={item.url} target="_blank" rel="noreferrer">
+            View source
+          </a>
+        ) : (
+          <span className="muted">Source pending</span>
+        )}
+      </div>
+    </article>
+  );
+};
+
+export default EvidenceCard;

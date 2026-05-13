@@ -12,6 +12,12 @@ __pycache__/
 # Editor / tool metadata
 .claude/
 
+# Node / frontend artifacts
+node_modules/
+web/node_modules/
+web/dist/
+web/.vite/
+
 # Training / experiment logs
 lightning_logs/
 

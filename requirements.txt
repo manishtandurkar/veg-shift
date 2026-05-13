@@ -22,5 +22,9 @@ shap>=0.44
 plotly>=5.18
 dash>=2.14
 
+# API
+fastapi>=0.110
+uvicorn>=0.27
+
 # Testing
 pytest>=7.0

@@ -119,6 +119,47 @@ python pipeline/step14_dashboard.py            # Launch Dash app at localhost:80
 
 ---
 
+## Product Web App (FastAPI + React)
+
+VegShift now includes a product-grade web app that consumes precomputed outputs and
+serves a decision-first UI.
+
+### 1) Build the frontend payload
+
+```bash
+python tools/build_frontend_payload.py
+```
+
+This reads existing outputs in `data/output/` and evidence in
+`docs/evidence_sources.json`, then writes `data/output/frontend_payload.json`.
+
+### 2) Start the API
+
+```bash
+uvicorn api.app:app --reload --port 8000
+```
+
+### 3) Start the frontend
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+The frontend expects the API at `http://localhost:8000`. Override with:
+
+```bash
+set VITE_API_BASE_URL=http://localhost:8000
+```
+
+### Evidence sources
+
+Populate `docs/evidence_sources.json` with real citations (title, source, date, URL,
+one-line summary) to ground each city page in real-world context.
+
+---
+
 ## Tests
 
 ```bash

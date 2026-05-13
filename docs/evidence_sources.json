@@ -1,0 +1,102 @@
+{
+  "Ahmedabad": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about heat, water, or crop stress in Ahmedabad.",
+      "is_placeholder": true
+    }
+  ],
+  "Bangalore": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about rainfall shifts or crop stress in Bangalore.",
+      "is_placeholder": true
+    }
+  ],
+  "Chennai": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about monsoon variability or water stress in Chennai.",
+      "is_placeholder": true
+    }
+  ],
+  "Delhi": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about heat waves or crop stress in Delhi.",
+      "is_placeholder": true
+    }
+  ],
+  "Hyderabad": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about rainfall deficits or groundwater in Hyderabad.",
+      "is_placeholder": true
+    }
+  ],
+  "Jaipur": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about groundwater decline or aridity in Jaipur.",
+      "is_placeholder": true
+    }
+  ],
+  "Kolkata": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about monsoon or flood risks in Kolkata.",
+      "is_placeholder": true
+    }
+  ],
+  "Lucknow": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about crop water stress or groundwater in Lucknow.",
+      "is_placeholder": true
+    }
+  ],
+  "Mumbai": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about coastal rainfall extremes or water stress in Mumbai.",
+      "is_placeholder": true
+    }
+  ],
+  "Pune": [
+    {
+      "title": "Add verified source",
+      "source": "TBD",
+      "date": "YYYY-MM-DD",
+      "url": "",
+      "summary": "Add a one-line summary of a verified report or article about rainfall variability or crop stress in Pune.",
+      "is_placeholder": true
+    }
+  ]
+}
