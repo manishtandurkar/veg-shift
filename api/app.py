@@ -2,8 +2,14 @@ from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from api.data_store import get_payload
+from api.chatbot import chatbot
+
+
+class ChatRequest(BaseModel):
+    message: str
 
 app = FastAPI(title="VegShift API", version="1.0")
 
@@ -14,8 +20,12 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:4173",
         "http://127.0.0.1:4173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
     ],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -87,5 +97,15 @@ def evidence(city: str) -> list:
     payload = get_payload()
     key = _normalize_city(city, payload)
     return payload["city_detail"][key]["evidence"]
+
+
+@app.post("/chat")
+def chat(request: ChatRequest) -> dict:
+    """Chat endpoint for VegShift knowledge base"""
+    try:
+        response = chatbot.get_response(request.message)
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
 
