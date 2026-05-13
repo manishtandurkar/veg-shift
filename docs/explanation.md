@@ -776,7 +776,10 @@ If Pune/Kolkata/Mumbai show deterioration, the labels are wrong. Controls valida
 | Deep learning | PyTorch + PyTorch Lightning | TFT, LSTM implementations |
 | Time series | PyTorch Forecasting | Specialized TFT library |
 | Explainability | SHAP | Industry-standard TreeExplainer |
-| Visualization | Plotly + Dash | Interactive web dashboard |
+| Visualization | Plotly + Dash | Interactive 11-panel research dashboard |
+| API layer | FastAPI + Uvicorn | REST endpoints serving precomputed outputs |
+| Frontend | React 18 + Vite | 9-page decision-first farmer UI |
+| Chatbot | TF-IDF (scikit-learn) | Knowledge-base retrieval over docs + outputs |
 | Orchestration | Python subprocess | Sequential step execution |
 | Testing | pytest | 29 tests covering all pipeline stages |
 
@@ -814,6 +817,34 @@ Tests cover: runner file structure, step count, dry-run exit, dataset presence, 
 
 ---
 
+### Run the product web app
+
+After the pipeline completes, build the frontend payload and start both servers:
+
+```bash
+python tools/build_frontend_payload.py   # assembles data/output/frontend_payload.json
+uvicorn api.app:app --reload --port 8000  # FastAPI backend
+cd web && npm install && npm run dev      # React frontend at localhost:5173
+```
+
+The web app has nine pages:
+
+| Route | What you see |
+|---|---|
+| `/` | Landing — project overview, live risk meters for all 10 cities |
+| `/intake` | Farmer profile form (name, city, land size, crop) |
+| `/dashboard` | ERI gauge, risk meter, advisory cards, trend strip, action steps |
+| `/city` | 25-year climate trajectory, zone transitions, CVLE timeline, evidence |
+| `/crops` | 14-crop ranked suitability table with trajectory penalty scores |
+| `/water` | RSI level, irrigation method, recharge trend, government schemes |
+| `/economic` | ERI component breakdown, MSP alert, distress threshold, procurement links |
+| `/explain` | SHAP feature importance and TFT attention weights |
+| `/reports` | Full city report with all outputs in one view |
+
+A **persistent AI chatbot** sits in the bottom-right corner of every page. It uses a TF-IDF knowledge base built from all `docs/` markdown files and key `data/output/` JSON files. Each response includes source attribution badges so you can trace the answer back to the exact document or pipeline output it came from.
+
+---
+
 ## Summary
 
 VegShift combines three datasets (climate, groundwater, crop requirements) to detect when crops become unviable after climate zone shifts in Indian cities.
@@ -834,7 +865,7 @@ VegShift combines three datasets (climate, groundwater, crop requirements) to de
 - Control city validation: Pune/Kolkata/Mumbai prove model is not spurious
 - SHAP + TFT attention: full explainability at feature and temporal level
 
-**Output:** Timestamped Crop Viability Loss Events with full causal and feature-level explanations, plus an 8-panel interactive dashboard.
+**Output:** Timestamped Crop Viability Loss Events with full causal and feature-level explanations, an 11-panel interactive Dash dashboard, and a product-grade React web app with AI chatbot.
 
 ---
 
@@ -846,8 +877,12 @@ VegShift combines three datasets (climate, groundwater, crop requirements) to de
 - **Dual-deficit:** Simultaneous atmospheric (low rainfall) + subsurface (low recharge) failure
 - **Monsoon onset:** Day-of-year when rainy season begins
 - **Recharge efficiency:** Water level recovery / Annual rainfall
+- **RSI:** Recharge Stress Index — four-level classification (Critical / Stressed / Moderate / Healthy) used to prescribe irrigation method per city
+- **ERI:** Exploitation Risk Index — weighted composite of CVLE probability, drought risk, groundwater stress, viability trajectory, and transition risk; triggers MSP alert at ≥ 0.65
+- **MSP:** Minimum Support Price — government-guaranteed floor price for a crop
 - **SHAP:** SHapley Additive exPlanations — feature importance method from game theory
 - **TFT:** Temporal Fusion Transformer — deep learning time series model with attention
 - **LSTM:** Long Short-Term Memory — recurrent neural network for sequences
+- **TF-IDF:** Term Frequency–Inverse Document Frequency — text similarity method used by the chatbot to retrieve relevant documents
 - **Wilcoxon test:** Non-parametric statistical test for paired comparisons (pre vs. post)
 - **Pipeline:** Sequential data processing workflow where each step feeds the next
