@@ -13,9 +13,14 @@ const Layout: React.FC = () => {
     <div className="app-shell">
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark">VegShift</span>
-          <span className="brand-tag">Climate-ready crop guidance</span>
+          <NavLink to="/" style={{ textDecoration: "none" }}>
+            <span className="brand-mark">
+              VegShift<sup>AI</sup>
+            </span>
+          </NavLink>
+          <span className="brand-tag">Climate-adaptive crop guidance for Indian farmers</span>
         </div>
+
         <nav className="nav">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/intake">Intake</NavLink>
@@ -24,9 +29,10 @@ const Layout: React.FC = () => {
           <NavLink to="/crops">Crops</NavLink>
           <NavLink to="/water">Water</NavLink>
           <NavLink to="/economic">Protection</NavLink>
-          <NavLink to="/explain">Explain</NavLink>
+          <NavLink to="/explain">Explainability</NavLink>
           <NavLink to="/reports">Reports</NavLink>
         </nav>
+
         <div className="header-actions">
           <CitySelector />
           <button type="button" className="ghost" onClick={() => setGlossaryOpen(true)}>
@@ -35,20 +41,37 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      <section className="status-bar">
-        {loading && <span>Loading data...</span>}
-        {error && <span className="error">{error}</span>}
-        {meta?.last_updated && (
-          <span className="muted">Last updated: {new Date(meta.last_updated).toLocaleString()}</span>
-        )}
-      </section>
+      {(loading || error || meta?.last_updated) && (
+        <section className="status-bar">
+          {loading && <span>Loading pipeline data…</span>}
+          {error && <span className="error">⚠ {error}</span>}
+          {meta?.last_updated && (
+            <span className="muted">
+              Pipeline run: {new Date(meta.last_updated).toLocaleString("en-IN", {
+                day: "2-digit", month: "short", year: "numeric",
+                hour: "2-digit", minute: "2-digit",
+              })}
+            </span>
+          )}
+        </section>
+      )}
 
       <main className="app-main">
         <Outlet />
       </main>
 
       <footer className="app-footer">
-        <span>SDG 13 | Climate Action • Built on VegShift pipeline outputs</span>
+        <div className="footer-sdg">
+          <span className="sdg-badge">SDG 13</span>
+          <span>Climate Action · Zero Hunger · Clean Water</span>
+        </div>
+        <div className="footer-tech">
+          <span>TFT · SHAP</span>
+          <span>FastAPI</span>
+          <span>React 18</span>
+          <span>Köppen-Geiger</span>
+          <span>FAO GAEZ · CGWB</span>
+        </div>
       </footer>
 
       <GlossaryModal open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
