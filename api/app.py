@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -10,6 +12,7 @@ from api.chatbot import chatbot
 
 class ChatRequest(BaseModel):
     message: str
+    history: list[dict[str, Any]] = []
 
 app = FastAPI(title="VegShift API", version="1.0")
 
@@ -103,7 +106,7 @@ def evidence(city: str) -> list:
 def chat(request: ChatRequest) -> dict:
     """Chat endpoint for VegShift knowledge base"""
     try:
-        response = chatbot.get_response(request.message)
+        response = chatbot.get_response(request.message, history=request.history)
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")

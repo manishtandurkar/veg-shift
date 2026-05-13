@@ -75,48 +75,69 @@ class VegShiftChatbot:
             contents = [doc['content'] for doc in self.documents]
             self.tfidf_matrix = self.vectorizer.fit_transform(contents)
 
-    def get_response(self, query: str) -> Dict[str, str]:
-        """Get response to user query based on knowledge base"""
+    def _extract_relevant_sentences(self, content: str, query: str, max_sentences: int = 5) -> str:
+        """Extract sentences most relevant to the query rather than just the first N."""
+        query_terms = set(query.lower().split())
+        # Split on sentence boundaries
+        import re
+        raw = re.split(r'(?<=[.!?])\s+', content)
+        sentences = [s.strip() for s in raw if len(s.strip()) > 20]
+
+        # Score each sentence by query term overlap
+        scored = []
+        for s in sentences:
+            words = set(s.lower().split())
+            score = len(query_terms & words)
+            scored.append((score, s))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top = [s for _, s in scored[:max_sentences] if s]
+        return ' '.join(top)
+
+    def get_response(self, query: str, history: List[Dict[str, str]] | None = None) -> Dict[str, str]:
+        """Get response to user query based on knowledge base."""
         if not self.documents or self.vectorizer is None:
             return {
-                'response': "I'm sorry, I don't have access to the knowledge base right now. Please try again later.",
+                'response': "I don't have access to the knowledge base right now. Please try again later.",
                 'source': 'system'
             }
 
-        # Vectorize the query
-        query_vector = self.vectorizer.transform([query])
+        # Augment query with last user turn from history for context
+        augmented_query = query
+        if history:
+            last_user = next((m['text'] for m in reversed(history) if m.get('isUser')), None)
+            if last_user and last_user != query:
+                augmented_query = f"{last_user} {query}"
 
-        # Calculate similarity scores
+        query_vector = self.vectorizer.transform([augmented_query])
         similarities = cosine_similarity(query_vector, self.tfidf_matrix)[0]
 
-        # Get top 3 most similar documents
         top_indices = np.argsort(similarities)[-3:][::-1]
-        top_docs = [self.documents[i] for i in top_indices if similarities[i] > 0.1]
+        top_docs = [self.documents[i] for i in top_indices if similarities[i] > 0.05]
 
         if not top_docs:
             return {
-                'response': "I couldn't find specific information about that in the project documentation. Could you please rephrase your question or ask about VegShift outputs, crop advisories, irrigation strategies, or risk assessments?",
+                'response': "I couldn't find specific information about that. Try asking about crop advisories, irrigation strategies, risk scores, SHAP explanations, or city-level climate data.",
                 'source': 'system'
             }
 
-        # Generate response based on top documents
         response_parts = []
         sources = []
 
-        for doc in top_docs:
-            # Extract relevant sentences (simple approach: first few sentences)
-            content = doc['content']
-            sentences = content.split('.')[:3]  # First 3 sentences
-            relevant_text = '. '.join(sentences).strip()
-            if relevant_text:
-                response_parts.append(relevant_text)
+        for doc in top_docs[:2]:
+            relevant = self._extract_relevant_sentences(doc['content'], query, max_sentences=4)
+            if relevant:
+                response_parts.append(relevant)
             sources.append(doc['source'])
 
-        response = ' '.join(response_parts[:2])  # Limit to 2 parts to avoid too long responses
+        response = ' '.join(response_parts)
+        # Trim to a readable length
+        if len(response) > 1200:
+            response = response[:1197] + '…'
 
         return {
             'response': response,
-            'source': ', '.join(set(sources))
+            'source': ', '.join(dict.fromkeys(sources))
         }
 
 # Global chatbot instance
