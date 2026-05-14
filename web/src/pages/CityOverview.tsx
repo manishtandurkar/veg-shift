@@ -98,7 +98,7 @@ const CityOverview: React.FC = () => {
       {detail && (
         <>
           {/* Trend */}
-          <TrendStrip slope={detail.trend.slope} trend={detail.trend.trend} />
+          {detail.trend && <TrendStrip slope={detail.trend.slope} trend={detail.trend.trend} />}
 
           {/* Climate transitions */}
           <div className="section">

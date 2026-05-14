@@ -6,12 +6,43 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
+# Load environment variables from .env file if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
 
 class VegShiftChatbot:
     def __init__(self):
         self.documents = []
         self.vectorizer = None
         self.tfidf_matrix = None
+        self.use_gemini = False
+        self.gemini_model = None
+        
+        # Initialize Gemini API if available and key is set
+        if GEMINI_AVAILABLE:
+            api_key = os.getenv('GEMINI_API_KEY')
+            if api_key:
+                try:
+                    genai.configure(api_key=api_key)
+                    # Use the correct model name - gemini-pro is more stable
+                    self.gemini_model = genai.GenerativeModel('gemini-pro')
+                    self.use_gemini = True
+                    print("✓ Gemini API initialized successfully")
+                except Exception as e:
+                    print(f"⚠ Gemini API initialization failed: {e}. Falling back to TF-IDF.")
+            else:
+                print("ℹ GEMINI_API_KEY not set. Using TF-IDF retrieval only.")
+        
         self._load_knowledge_base()
 
     # ── JSON → readable text converters ──────────────────────────────
@@ -259,6 +290,101 @@ class VegShiftChatbot:
         return ' '.join(s for _, s in scored[:max_sentences] if s)
 
     def get_response(self, query: str, history: List[Dict[str, str]] | None = None) -> Dict[str, str]:
+        """
+        Get chatbot response using Gemini API (preferred) or TF-IDF fallback.
+        Gemini is used for semantic understanding and contextual responses.
+        TF-IDF is used as fallback for keyword matching or when Gemini unavailable.
+        """
+        if not self.documents:
+            return {
+                'response': "I don't have access to the knowledge base right now. Please try again later.",
+                'source': 'system',
+            }
+
+        # Try Gemini first if available
+        if self.use_gemini and self.gemini_model:
+            try:
+                return self._get_gemini_response(query, history)
+            except Exception as e:
+                print(f"Gemini error, falling back to TF-IDF: {e}")
+                # Fall through to TF-IDF
+        
+        # Fall back to TF-IDF
+        return self._get_tfidf_response(query, history)
+
+    def _get_gemini_response(self, query: str, history: List[Dict[str, str]] | None = None) -> Dict[str, str]:
+        """Use Gemini API for intelligent response generation."""
+        # Retrieve context from knowledge base
+        context_docs = self._retrieve_context_docs(query, history, top_k=3)
+        
+        if not context_docs:
+            return {
+                'response': (
+                    "I couldn't find specific information about that. "
+                    "Try asking about crop advisories, irrigation strategies, "
+                    "risk scores, SHAP explanations, or city-level climate data."
+                ),
+                'source': 'system',
+            }
+        
+        # Build context from retrieved documents
+        context = "\n".join([doc['content'][:500] for doc in context_docs])
+        sources = ', '.join([doc['source'] for doc in context_docs])
+        
+        # Build conversation history for context
+        conv_history = ""
+        if history:
+            for msg in history[-4:]:  # Use last 4 messages for context
+                role = "User" if msg.get('isUser') else "Assistant"
+                conv_history += f"{role}: {msg['text']}\n"
+        
+        # Create prompt for Gemini
+        system_prompt = """You are VegShift, an AI assistant for Indian agriculture helping farmers understand crop viability, climate change, and irrigation strategies. 
+Your knowledge comes from detailed analysis of 10 Indian cities (Ahmedabad, Bangalore, Chennai, Delhi, Hyderabad, Jaipur, Kolkata, Lucknow, Mumbai, Pune).
+
+Answer questions concisely and conversationally. Reference specific data and city examples from the knowledge base.
+Focus on actionable insights for farmers. Be friendly and encouraging."""
+
+        prompt = f"""{system_prompt}
+
+Knowledge Base Context:
+{context}
+
+Conversation History:
+{conv_history}
+
+User Question: {query}
+
+Provide a helpful, specific answer based on the knowledge base context. Keep it under 200 words."""
+
+        try:
+            response = self.gemini_model.generate_content(prompt)
+            return {
+                'response': response.text or "I couldn't generate a response. Please try again.",
+                'source': sources,
+            }
+        except Exception as e:
+            raise Exception(f"Gemini generation failed: {str(e)}")
+
+    def _retrieve_context_docs(self, query: str, history: List[Dict[str, str]] | None = None, top_k: int = 3) -> List[Dict]:
+        """Retrieve relevant documents using TF-IDF for context."""
+        if not self.documents or self.vectorizer is None:
+            return []
+        
+        augmented_query = query
+        if history:
+            last_user = next((m['text'] for m in reversed(history) if m.get('isUser')), None)
+            if last_user and last_user != query:
+                augmented_query = f"{last_user} {query}"
+        
+        query_vector = self.vectorizer.transform([augmented_query])
+        similarities = cosine_similarity(query_vector, self.tfidf_matrix)[0]
+        
+        top_indices = np.argsort(similarities)[-top_k:][::-1]
+        return [self.documents[i] for i in top_indices if similarities[i] > 0.05]
+
+    def _get_tfidf_response(self, query: str, history: List[Dict[str, str]] | None = None) -> Dict[str, str]:
+        """Fallback TF-IDF response generation."""
         if not self.documents or self.vectorizer is None:
             return {
                 'response': "I don't have access to the knowledge base right now. Please try again later.",

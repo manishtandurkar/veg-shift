@@ -117,10 +117,10 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="card metric-card">
               <div className="metric-label">Trend Slope</div>
-              <div className={`metric-value ${detail.trend.trend === "deteriorating" ? "metric-delta negative" : detail.trend.trend === "improving" ? "metric-delta positive" : ""}`}>
-                {detail.trend.slope.toFixed(4)}
+              <div className={`metric-value ${(detail.trend?.trend === "deteriorating") ? "metric-delta negative" : (detail.trend?.trend === "improving") ? "metric-delta positive" : ""}`}>
+                {(detail.trend?.slope ?? 0).toFixed(4)}
               </div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Per year · R² = {detail.trend.r_squared.toFixed(3)}</p>
+              <p style={{ fontSize: "0.8rem", margin: 0 }}>Per year · R² = {(detail.trend?.r_squared ?? 0).toFixed(3)}</p>
             </div>
             <div className="card metric-card">
               <div className="metric-label">Transitions detected</div>
@@ -134,7 +134,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Trend */}
-          <TrendStrip slope={detail.trend.slope} trend={detail.trend.trend} />
+          {detail.trend && <TrendStrip slope={detail.trend.slope} trend={detail.trend.trend} />}
 
           {/* Crop recommendations */}
           <div className="section">
