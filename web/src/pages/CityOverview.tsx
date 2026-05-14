@@ -4,19 +4,23 @@ import { useCityDetail } from "../hooks/useCityDetail";
 import EvidenceCard from "../components/EvidenceCard";
 import RiskMeter from "../components/RiskMeter";
 import TrendStrip from "../components/TrendStrip";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 const CityOverview: React.FC = () => {
   const { selectedCity, cities } = useCityContext();
   const summary = cities.find((c) => c.city === selectedCity);
   const { detail, loading, error } = useCityDetail(selectedCity);
 
+  const { lang } = useLanguage();
+
   if (!selectedCity || !summary) {
     return (
       <section className="page">
         <div className="card" style={{ textAlign: "center", padding: 48 }}>
           <div style={{ fontSize: "3rem", marginBottom: 16 }}>🗺️</div>
-          <h3>Select a city</h3>
-          <p>Choose a city from the header dropdown to explore its climate data.</p>
+          <h3>{t(lang, 'dashboard.no_city')}</h3>
+          <p>{t(lang, 'select.city.placeholder')}</p>
         </div>
       </section>
     );
@@ -27,7 +31,7 @@ const CityOverview: React.FC = () => {
       <div className="page-header">
         <div>
           <h1>{selectedCity}</h1>
-          <p>25-year climate trajectory, zone transitions, crop risk, and local evidence.</p>
+          <p>{t(lang, "city.desc")}</p>
         </div>
         <RiskMeter level={summary.risk_level} />
       </div>
@@ -35,33 +39,33 @@ const CityOverview: React.FC = () => {
       {/* Key metrics */}
       <div className="card-grid">
         <div className="card metric-card">
-          <div className="metric-label">Current zone</div>
+          <div className="metric-label">{t(lang, "dashboard.current_zone")}</div>
           <div className="metric-value" style={{ fontSize: "1.4rem" }}>
             {detail?.advisory.current_zone ?? summary.current_zone ?? "—"}
           </div>
-          <p style={{ fontSize: "0.8rem", margin: 0 }}>Köppen-Geiger classification</p>
+          <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "dashboard.koppen")}</p>
         </div>
         <div className="card metric-card">
-          <div className="metric-label">CVLE events (5 yr)</div>
+          <div className="metric-label">{t(lang, "dashboard.cvle_5yr")}</div>
           <div className={`metric-value ${(summary.recent_cvle_count ?? 0) >= 2 ? "metric-delta negative" : "metric-delta positive"}`}>
             {summary.recent_cvle_count}
           </div>
-          <p style={{ fontSize: "0.8rem", margin: 0 }}>Crop Viability Loss Events</p>
+          <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "dashboard.cvle_desc")}</p>
         </div>
         <div className="card metric-card">
-          <div className="metric-label">Risk level</div>
+          <div className="metric-label">{t(lang, 'risk.level')}</div>
           <div className={`metric-value metric-delta ${summary.risk_level === "high" ? "negative" : summary.risk_level === "low" ? "positive" : ""}`} style={{ fontSize: "1.3rem", textTransform: "capitalize" }}>
-            {summary.risk_level}
+            {t(lang, `risk.${summary.risk_level}`)}
           </div>
-          <p style={{ fontSize: "0.8rem", margin: 0 }}>Based on dual-deficit trigger</p>
+          <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "city.risk_desc")}</p>
         </div>
         {detail && (
           <div className="card metric-card">
-            <div className="metric-label">Trend slope</div>
+            <div className="metric-label">{t(lang, "dashboard.trend_slope")}</div>
             <div className={`metric-value ${detail.trend.trend === "deteriorating" ? "metric-delta negative" : detail.trend.trend === "improving" ? "metric-delta positive" : ""}`}>
               {detail.trend.slope.toFixed(4)}
             </div>
-            <p style={{ fontSize: "0.8rem", margin: 0 }}>Per year · R² = {detail.trend.r_squared.toFixed(3)}</p>
+            <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "dashboard.per_year_r2", { r2: detail.trend.r_squared.toFixed(3) })}</p>
           </div>
         )}
       </div>
@@ -70,8 +74,8 @@ const CityOverview: React.FC = () => {
       {summary.top_crops.length > 0 && (
         <div className="card">
           <div className="card-header">
-            <h3>Recommended crops</h3>
-            <span className="tag">Ranked by suitability</span>
+            <h3>{t(lang, "city.crop_recommendations")}</h3>
+            <span className="tag">{t(lang, "city.ranked")}</span>
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {summary.top_crops.map((c, i) => (
@@ -92,7 +96,7 @@ const CityOverview: React.FC = () => {
         </div>
       )}
 
-      {loading && <p>Loading detailed data…</p>}
+      {loading && <p>{t(lang, "loading")}</p>}
       {error && <p className="error">{error}</p>}
 
       {detail && (
@@ -103,8 +107,8 @@ const CityOverview: React.FC = () => {
           {/* Climate transitions */}
           <div className="section">
             <div className="section-head">
-              <h2>Climate zone transitions</h2>
-              <span className="tag">{detail.transitions.length} detected</span>
+              <h2>{t(lang, "city.transitions_title")}</h2>
+              <span className="tag">{t(lang, "city.detected", { count: String(detail.transitions.length) })}</span>
             </div>
             {detail.transitions.length > 0 ? (
               <div className="table">
@@ -117,22 +121,22 @@ const CityOverview: React.FC = () => {
                       <strong>{item.to_zone}</strong>
                     </div>
                     <div style={{ color: "var(--muted)", fontSize: "0.83rem" }}>
-                      Confirmed over {item.years_confirmed} year{item.years_confirmed !== 1 ? "s" : ""}
+                      {t(lang, "city.confirmed", { count: String(item.years_confirmed) })}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="card muted">
-                No Köppen-Geiger zone transitions detected for {selectedCity} in the study period.
-                This means the city's climate classification has remained stable (2000–2024).
+                {t(lang, "city.no_koppen", { city: selectedCity })}
+                {t(lang, 'koppen.stable_explain')}
               </div>
             )}
           </div>
 
           {/* Evidence */}
           <div className="section">
-            <h2>Evidence from the ground</h2>
+            <h2>{t(lang, "city.ground_evidence")}</h2>
             <div className="card-grid">
               {detail.evidence.map((item, idx) => (
                 <EvidenceCard key={`${item.title}-${idx}`} item={item} />

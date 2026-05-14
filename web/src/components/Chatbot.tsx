@@ -11,14 +11,35 @@ interface Message {
   isError?: boolean;
 }
 
-const SUGGESTED = [
-  'Which crops are best for this season?',
-  'What does the ERI score mean?',
-  'How is irrigation strategy calculated?',
-  'Explain the SHAP values shown',
-  'What are the climate risk levels?',
-  'Which cities have the highest crop viability?',
-];
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
+
+const SUGGESTED_DEFAULT = {
+  en: [
+    'Which crops are best for this season?',
+    'What does the ERI score mean?',
+    'How is irrigation strategy calculated?',
+    'Explain the SHAP values shown',
+    'What are the climate risk levels?',
+    'Which cities have the highest crop viability?',
+  ],
+  hi: [
+    'इस मौसम के लिए कौन सी फसलें बेहतर हैं?',
+    'ERI स्कोर का क्या मतलब है?',
+    'सिंचाई रणनीति कैसे निकाली जाती है?',
+    'दिखाए गए SHAP मान समझाएं',
+    'जलवायु जोखिम स्तर क्या हैं?',
+    'किन शहरों में फसल व्यवहार्यता सबसे अधिक है?',
+  ],
+  kn: [
+    'ಈ ಋತುವಿಗೆ ಯಾವ ಬೆಳೆಗಳು ಉತ್ತಮ?',
+    'ERI ಅಂಕದ ಅರ್ಥವೇನು?',
+    'ನೀರಾವರಿ ತಂತ್ರವನ್ನು ಹೇಗೆ ಲೆಕ್ಕ ಹಾಕುತ್ತಾರೆ?',
+    'ತೋರಿಸಿರುವ SHAP ಮೌಲ್ಯಗಳನ್ನು ವಿವರಿಸಿ',
+    'ಹವಾಮಾನ ಅಪಾಯ ಮಟ್ಟಗಳು ಯಾವುವು?',
+    'ಯಾವ ನಗರಗಳಲ್ಲಿ ಬೆಳೆ ಸಾಧ್ಯತೆ ಹೆಚ್ಚು?',
+  ],
+} as const;
 
 function formatBotText(text: string): React.ReactNode {
   const lines = text.split(/\n+/);
@@ -52,6 +73,7 @@ function renderInline(text: string): React.ReactNode {
 }
 
 function SourceBadge({ source }: { source: string }) {
+  const { lang } = useLanguage();
   const labels: Record<string, string> = {
     'docs/explanation.md': 'Explanation',
     'docs/LAYMAN_GUIDE.md': 'Guide',
@@ -71,7 +93,7 @@ function SourceBadge({ source }: { source: string }) {
   const parts = source.split(', ').slice(0, 2);
   return (
     <div className="chat-sources">
-      <span className="chat-sources-label">Source:</span>
+      <span className="chat-sources-label">{t(lang, "chat.source")}</span>
       {parts.map((s) => (
         <span key={s} className="chat-source-tag">
           {labels[s] ?? s}
@@ -103,6 +125,8 @@ const Chatbot: React.FC = () => {
       setTimeout(() => inputRef.current?.focus(), 120);
     }
   }, [isOpen]);
+
+  const { lang } = useLanguage();
 
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim() || isLoading) return;
@@ -147,7 +171,7 @@ const Chatbot: React.FC = () => {
     } catch {
       setMessages(prev => [...prev, {
         id: `e-${Date.now()}`,
-        text: 'Connection failed. Make sure the API server is running and try again.',
+        text: t(lang, "chat.connection_failed"),
         isUser: false,
         timestamp: new Date(),
         isError: true,
@@ -155,7 +179,7 @@ const Chatbot: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, messages]);
+  }, [isLoading, lang, messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,8 +206,8 @@ const Chatbot: React.FC = () => {
       <button
         className={`chatbot-toggle ${isOpen ? 'chatbot-toggle--open' : ''}`}
         onClick={() => setIsOpen(v => !v)}
-        aria-label={isOpen ? 'Close assistant' : 'Open VegShift assistant'}
-        title={isOpen ? 'Close' : 'Ask VegShift AI'}
+        aria-label={isOpen ? t(lang, "chat.close") : t(lang, "chat.open")}
+        title={isOpen ? t(lang, "chat.close") : t(lang, "chat.ask")}
       >
         <span className="chatbot-toggle-icon">
           {isOpen ? (
@@ -215,19 +239,19 @@ const Chatbot: React.FC = () => {
               </svg>
             </div>
             <div>
-              <div className="chatbot-header-title">VegShift Assistant</div>
-              <div className="chatbot-header-sub">AI-powered crop guidance</div>
+              <div className="chatbot-header-title">{t(lang, "chat.title")}</div>
+              <div className="chatbot-header-sub">{t(lang, 'chat.subtitle')}</div>
             </div>
           </div>
           <div className="chatbot-header-actions">
             {messages.length > 0 && (
-              <button className="chatbot-action-btn" onClick={clearConversation} title="Clear conversation" aria-label="Clear conversation">
+              <button className="chatbot-action-btn" onClick={clearConversation} title={t(lang, "chat.clear")} aria-label={t(lang, "chat.clear")}>
                 <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                   <path d="M3 4h12M7 4V3h4v1M5 4l1 11h6l1-11"/>
                 </svg>
               </button>
             )}
-            <button className="chatbot-action-btn" onClick={() => setIsOpen(false)} aria-label="Close">
+            <button className="chatbot-action-btn" onClick={() => setIsOpen(false)} aria-label={t(lang, "chat.close")}>
               <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="4" y1="4" x2="14" y2="14"/><line x1="14" y1="4" x2="4" y2="14"/>
               </svg>
@@ -240,8 +264,8 @@ const Chatbot: React.FC = () => {
           {isEmpty && (
             <div className="chatbot-welcome">
               <div className="chatbot-welcome-icon">🌾</div>
-              <h4>How can I help?</h4>
-              <p>Ask anything about crop advisories, climate risk scores, irrigation strategy, or SHAP model explanations.</p>
+                  <h4>{t(lang, 'chat.title')}</h4>
+                  <p>{t(lang, 'chat.subtitle')}</p>
             </div>
           )}
 
@@ -281,7 +305,7 @@ const Chatbot: React.FC = () => {
         {/* Suggestions */}
         {showSuggestions && isEmpty && (
           <div className="chatbot-suggestions">
-            {SUGGESTED.map((q) => (
+            {SUGGESTED_DEFAULT[lang].map((q) => (
               <button key={q} className="suggestion-chip" onClick={() => sendMessage(q)}>
                 {q}
               </button>
@@ -298,10 +322,10 @@ const Chatbot: React.FC = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about crops, risk, irrigation…"
+              placeholder={t(lang, 'chat.placeholder')}
               disabled={isLoading}
               maxLength={400}
-              aria-label="Type your question"
+              aria-label={t(lang, "chat.placeholder")}
             />
             {inputValue.length > 300 && (
               <span className="char-count">{400 - inputValue.length}</span>
@@ -311,7 +335,7 @@ const Chatbot: React.FC = () => {
             type="submit"
             className="chatbot-send-btn"
             disabled={isLoading || !inputValue.trim()}
-            aria-label="Send message"
+            aria-label={t(lang, "chat.send")}
           >
             {isLoading ? (
               <svg viewBox="0 0 20 20" fill="none" className="spin">

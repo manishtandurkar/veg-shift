@@ -1,11 +1,14 @@
 import React, { useState } from "react";
 import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 const Reports: React.FC = () => {
   const { selectedCity, cities } = useCityContext();
   const { detail, loading, error } = useCityDetail(selectedCity);
   const [downloaded, setDownloaded] = useState(false);
+  const { lang } = useLanguage();
 
   const handleDownload = () => {
     if (!detail) return;
@@ -55,8 +58,8 @@ const Reports: React.FC = () => {
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Reports & Exports</h1>
-          <p>Download city reports for field use, presentations, or academic submission.</p>
+          <h1>{t(lang, 'nav.reports')}</h1>
+          <p>{t(lang, "reports.desc")}</p>
         </div>
       </div>
 
@@ -65,10 +68,9 @@ const Reports: React.FC = () => {
         {/* All-cities CSV */}
         <div className="card">
           <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>📊</div>
-          <h3>All-cities summary</h3>
+          <h3>{t(lang, "reports.all_summary")}</h3>
           <p style={{ fontSize: "0.875rem" }}>
-            CSV with risk level, Köppen zone, CVLE count, and top crop for all 10 cities.
-            Suitable for spreadsheets and poster data tables.
+            {t(lang, "reports.all_summary_desc")}
           </p>
           <button
             type="button"
@@ -76,24 +78,23 @@ const Reports: React.FC = () => {
             onClick={handleDownloadSummary}
             style={{ marginTop: 12 }}
           >
-            Download CSV
+            {t(lang, 'download.csv')}
           </button>
         </div>
 
         {/* City JSON */}
         <div className="card">
           <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>🌆</div>
-          <h3>{selectedCity ? `${selectedCity} full report` : "City detail report"}</h3>
+          <h3>{selectedCity ? t(lang, "reports.city_full", { city: selectedCity }) : t(lang, "reports.city_detail")}</h3>
           <p style={{ fontSize: "0.875rem" }}>
-            Full JSON export including crop advisory, irrigation strategy, ERI scores,
-            SHAP drivers, and evidence citations for {selectedCity || "the selected city"}.
+            {t(lang, "reports.city_desc")}
           </p>
           {!selectedCity && (
             <p style={{ fontSize: "0.8rem", color: "var(--risk-medium)", marginTop: 8 }}>
-              Select a city from the header first.
+              {t(lang, 'select.city.header_hint')}
             </p>
           )}
-          {loading && <p style={{ fontSize: "0.875rem" }}>Preparing report…</p>}
+          {loading && <p style={{ fontSize: "0.875rem" }}>{t(lang, "reports.preparing")}</p>}
           {error && <p className="error">{error}</p>}
           <button
             type="button"
@@ -102,17 +103,16 @@ const Reports: React.FC = () => {
             disabled={!detail || loading}
             style={{ marginTop: 12 }}
           >
-            {downloaded ? "✓ Downloaded!" : "Download JSON"}
+            {downloaded ? t(lang, 'downloaded') : t(lang, 'download.json')}
           </button>
         </div>
 
         {/* Pipeline info */}
         <div className="card">
           <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>🧬</div>
-          <h3>Pipeline documentation</h3>
+          <h3>{t(lang, "reports.pipeline_docs")}</h3>
           <p style={{ fontSize: "0.875rem" }}>
-            The VegShift pipeline runs 17 reproducible steps: data preprocessing → Köppen
-            classification → TFT training → SHAP analysis → advisory generation.
+            {t(lang, "reports.pipeline_desc")}
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
             <span className="tag">17 steps</span>
@@ -126,8 +126,8 @@ const Reports: React.FC = () => {
       {detail && selectedCity && (
         <div className="card">
           <div className="card-header">
-            <h3>Report preview — {selectedCity}</h3>
-            <span className="tag">JSON structure</span>
+            <h3>{t(lang, "reports.preview", { city: selectedCity })}</h3>
+            <span className="tag">{t(lang, "reports.json")}</span>
           </div>
           <div style={{
             background: "rgba(30, 42, 36, 0.04)",
@@ -153,7 +153,7 @@ const Reports: React.FC = () => {
 
       {/* Data sources card */}
       <div className="card">
-        <h3>Data sources & attribution</h3>
+        <h3>{t(lang, "reports.sources")}</h3>
         <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           <div style={{ padding: "14px 16px", background: "rgba(30,42,36,0.05)", borderRadius: 12, border: "1px solid var(--border)" }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>DS1: Climate</div>

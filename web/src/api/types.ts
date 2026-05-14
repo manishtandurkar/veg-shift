@@ -128,3 +128,21 @@ export interface SummaryResponse {
   summary: CitySummary[];
   meta?: MetaInfo;
 }
+
+export type CoachMode = "llm" | "rule-based";
+export type CoachLanguage = "en" | "hi" | "kn";
+
+export interface CoachRequest {
+  city: string;
+  language: CoachLanguage;
+  irrigation_method: string;
+  sowing_window: string;
+  avoid_crops: string[];
+  recommended_crops: string[];
+  profile?: Record<string, string>;
+}
+
+export interface CoachResponse {
+  mode: CoachMode;
+  steps: string[];
+}
