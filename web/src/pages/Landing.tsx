@@ -5,14 +5,6 @@ import RiskMeter from "../components/RiskMeter";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
 
-const STATS = [
-  { number: "10", labelKey: "stats.cities" },
-  { number: "25", labelKey: "stats.years" },
-  { number: "14", labelKey: "stats.crops" },
-  { number: "3", labelKey: "stats.sources" },
-  { number: "17", labelKey: "stats.steps" },
-];
-
 const PIPELINE_STEPS = [
   {
     icon: "🛰️",
@@ -68,20 +60,6 @@ const Landing: React.FC = () => {
           <Link className="secondary" to="/city">{t(lang, 'nav.city')}</Link>
           <Link className="secondary" to="/explain">{t(lang, 'nav.explain')}</Link>
         </div>
-      </div>
-
-      {/* ── Stats ── */}
-      <div className="stats-row">
-        {STATS.map((s, i) => (
-          <div
-            key={s.labelKey}
-            className="stat-card"
-            style={{ "--delay": `${i * 0.06}s` } as React.CSSProperties}
-          >
-            <span className="stat-number">{s.number}</span>
-            <div className="stat-label">{t(lang, s.labelKey)}</div>
-          </div>
-        ))}
       </div>
 
       {/* ── City grid ── */}
