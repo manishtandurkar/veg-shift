@@ -40,19 +40,26 @@ def infer_tft(args: argparse.Namespace) -> None:
     model.eval()
 
     raw_predictions = model.predict(val_loader, mode="raw", return_x=True)
-    prediction_tensor = raw_predictions.output.prediction
-    prediction_values = prediction_tensor[:, 0, 3].detach().cpu().numpy()
-    prediction_values = np.clip(prediction_values, 0.0, 1.0)
+    prediction_tensor = raw_predictions.output.prediction  # shape: [n_samples, pred_len, n_quantiles]
 
-    prediction_output = validation.decoded_index.copy().reset_index(drop=True)
-    prediction_output["predicted_cvle_score"] = prediction_values
-    prediction_output = prediction_output.rename(columns={"time_idx_first_prediction": "time_idx"})
-    prediction_output = prediction_output.merge(
+    base_index = validation.decoded_index.copy().reset_index(drop=True)
+    pred_len = prediction_tensor.shape[1]
+    rows = []
+    for step in range(pred_len):
+        step_vals = np.clip(prediction_tensor[:, step, 3].detach().cpu().numpy(), 0.0, 1.0)
+        step_df = base_index.copy()
+        step_df["time_idx"] = step_df["time_idx_first_prediction"] + step
+        step_df["predicted_cvle_score"] = step_vals
+        rows.append(step_df[["city", "time_idx", "predicted_cvle_score"]])
+
+    all_preds = pd.concat(rows, ignore_index=True)
+    prediction_output = all_preds.merge(
         df[["city", "time_idx", "year"]],
         on=["city", "time_idx"],
         how="left",
     )
-    prediction_output = prediction_output[["city", "year", "predicted_cvle_score"]].sort_values(["city", "year"]).reset_index(drop=True)
+    prediction_output = prediction_output[["city", "year", "predicted_cvle_score"]].dropna(subset=["year"]).sort_values(["city", "year"]).reset_index(drop=True)
+    prediction_output["year"] = prediction_output["year"].astype(int)
     prediction_output.to_csv(args.prediction_output, index=False)
 
     attention_tensor = getattr(raw_predictions.output, "encoder_attention", None)

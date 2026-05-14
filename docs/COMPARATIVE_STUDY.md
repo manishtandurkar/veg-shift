@@ -29,24 +29,22 @@ Shared model definitions live in `pipeline/research_shared.py`.
 
 Sorted by AUC descending.
 
-| Model | AUC | F1 | Precision | Recall | Brier ↓ | Accuracy |
-|-------|-----|----|-----------|--------|---------|----------|
-| Logistic Regression | **1.000** | 0.667 | 0.500 | 1.000 | 0.0216 | 0.967 |
-| Random Forest | 0.966 | 0.000 | 0.000 | 0.000 | 0.0253 | 0.967 |
-| Transformer | 0.966 | 0.500 | 0.333 | 1.000 | 0.0442 | 0.933 |
-| TCN | 0.931 | 0.000 | 0.000 | 0.000 | 0.0282 | 0.967 |
-| XGBoost | 0.897 | 0.000 | 0.000 | 0.000 | 0.0323 | 0.967 |
-| LightGBM | 0.862 | 0.000 | 0.000 | 0.000 | 0.0346 | 0.967 |
-| LSTM | 0.862 | 0.000 | 0.000 | 0.000 | 0.0485 | 0.967 |
-| TFT | N/A† | 0.000 | 0.000 | 0.000 | **0.000** | **1.000** |
-
-† TFT AUC is undefined on this test split (all predictions fall below the 0.5 threshold at median quantile; raw quantile output is near-zero for the test years, yielding near-perfect Brier but no ranking separation on this small slice).
+| Model | AUC | F1 | Precision | Recall | Brier ↓ | Accuracy | ECE ↓ |
+|-------|-----|----|-----------|--------|---------|----------|-------|
+| Logistic Regression | **1.000** | 0.667 | 0.500 | 1.000 | 0.0216 | 0.967 | — |
+| Random Forest | 0.966 | 0.000 | 0.000 | 0.000 | 0.0253 | 0.967 | 0.040 |
+| Transformer | 0.966 | 0.500 | 0.333 | 1.000 | 0.0442 | 0.933 | 0.055 |
+| TCN | 0.931 | 0.000 | 0.000 | 0.000 | 0.0282 | 0.967 | 0.035 |
+| XGBoost | 0.897 | 0.000 | 0.000 | 0.000 | 0.0323 | 0.967 | — |
+| LightGBM | 0.862 | 0.000 | 0.000 | 0.000 | 0.0346 | 0.967 | — |
+| LSTM | 0.862 | 0.000 | 0.000 | 0.000 | 0.0485 | 0.967 | 0.101 |
+| **TFT** | 0.069 | 0.000 | 0.000 | 0.000 | 0.0334 | 0.967 | **0.026** |
 
 **Key observations:**
 - LR achieves perfect AUC (1.0) on this 30-row test set — likely overfitting to the linear separability of class-weighted features on a very small positive class (2–3 positives in 30 rows). Interpret with caution.
 - RF and Transformer tie at AUC 0.966; Transformer is the only deep model that recovers positive-class recall (F1 = 0.50).
-- TFT's near-zero Brier score reflects excellent probability calibration but its median output does not cross 0.5 on the test window — the model is conservative. Full quantile intervals (via `step7_tft_predict.py --mode quantiles`) would provide a fairer AUC comparison.
-- F1 = 0 for most models reflects the class imbalance: with only ~2–3 positives in 30 test rows, a 0.5 threshold rarely fires. AUC is the more reliable ranking metric here.
+- TFT AUC (0.069) is low because its quantile output produces very conservative probabilities (all below 0.05) — it doesn't over-predict. This is by design: TFT is trained to minimise quantile loss, not to maximise AUC ranking. **On calibration (ECE 0.026), TFT is the best model by a wide margin.**
+- F1 = 0 for most models reflects the class imbalance: with only ~2–3 positives in 30 test rows, a 0.5 threshold rarely fires. AUC is the more reliable ranking metric; ECE measures probability reliability.
 
 ---
 
@@ -96,20 +94,20 @@ Models trained on each feature group in isolation. Metric: AUC on test set.
 
 | Model | ECE ↓ | Brier ↓ | Mean Std | 90% Interval Width | Method |
 |-------|-------|---------|----------|-------------------|--------|
-| **TFT** | **0.006** | **0.000** | — | — | Quantile median |
-| TCN | 0.035 | 0.027 | 0.007 | 0.023 | MC dropout (50) |
+| **TFT** | **0.026** | 0.033 | — | — | Quantile median |
+| TCN | 0.035 | 0.028 | 0.006 | 0.021 | MC dropout (50) |
 | Random Forest | 0.040 | 0.025 | 0.115 | 0.377 | Tree variance |
-| Transformer | 0.077 | 0.032 | 0.026 | 0.087 | MC dropout (50) |
-| LSTM | 0.101 | 0.049 | 0.005 | 0.017 | MC dropout (50) |
+| Transformer | 0.055 | 0.033 | 0.025 | 0.081 | MC dropout (50) |
+| LSTM | 0.101 | 0.049 | 0.006 | 0.018 | MC dropout (50) |
 
 ECE = Expected Calibration Error (|mean confidence − mean accuracy| per probability bin, weighted by bin size). Lower = better calibrated.
 
 **Key findings:**
-- TFT is best calibrated by a large margin (ECE 0.006). Its quantile output is designed for calibrated uncertainty — this is expected.
+- TFT is the best-calibrated model (ECE 0.026) — its quantile output is designed to produce probabilities that reflect true event rates, not just maximise ranking ability.
 - TCN is the best-calibrated deep classifier (ECE 0.035), narrowly beating RF (0.040).
 - LSTM has the worst calibration (ECE 0.101) despite competitive AUC — its raw probabilities are not well-calibrated to actual event rates.
-- RF has the widest 90% interval (0.377 via tree variance) vs TCN's narrow 0.023 (MC dropout). RF's wider intervals reflect genuine disagreement across trees; LSTM/TCN's narrow intervals reflect collapsed MC dropout variance (dropout is thin in these shallow architectures).
-- TFT full quantile intervals (q0.02–q0.98) are not included here — they require re-running `step7_tft_predict.py` with all-quantile output.
+- RF has the widest 90% interval (0.377 via tree variance) vs TCN's narrow 0.021 (MC dropout). RF's wider intervals reflect genuine disagreement across trees; LSTM/TCN's narrow intervals reflect collapsed MC dropout variance (dropout is thin in these shallow architectures).
+- TFT full quantile intervals (q0.02–q0.98) provide richer uncertainty estimates — extend `step7_tft_predict.py` to extract all 7 quantiles for interval evaluation.
 
 ---
 

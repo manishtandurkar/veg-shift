@@ -69,7 +69,7 @@ def build_datasets(df: pd.DataFrame, encoder_len: int, pred_len: int) -> tuple[T
     static_reals = ["gaez_baseline_class", "gdd_min", "water_req", "sow_doy", "max_temp"]
 
     train_df = df[df["time_idx"] <= 18].copy()
-    val_df = df[df["time_idx"] <= 21].copy()
+    val_df = df.copy()  # predict on full range so test window (2022-2024) is covered
 
     training = TimeSeriesDataSet(
         train_df,
