@@ -28,6 +28,10 @@ def load_and_prepare(path: str) -> pd.DataFrame:
     df["koppen_zone"] = df["koppen_zone"].astype(str)
     df["cvle_label"] = df["cvle_label"].astype(float)
 
+    import numpy as np
+    df["cycle_sin_5yr"] = np.sin(2 * np.pi * df["year"] / 5.0)
+    df["cycle_cos_5yr"] = np.cos(2 * np.pi * df["year"] / 5.0)
+
     for col in FILL_CITY_COLS:
         if col in df.columns:
             df[col] = df.groupby("city")[col].transform(lambda x: x.fillna(x.mean()))
@@ -56,6 +60,8 @@ def build_datasets(df: pd.DataFrame, encoder_len: int, pred_len: int) -> tuple[T
         "dual_deficit",
         "gdd_adequate",
         "koppen_zone_enc",
+        "cycle_sin_5yr",
+        "cycle_cos_5yr",
     ]
 
     time_varying_known_cats = ["koppen_zone"]

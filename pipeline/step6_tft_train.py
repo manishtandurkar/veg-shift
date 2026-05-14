@@ -42,7 +42,7 @@ def train_tft(args: argparse.Namespace) -> pathlib.Path:
         output_size=7,
         loss=QuantileLoss(),
         log_interval=10,
-        reduce_on_plateau_patience=4,
+        reduce_on_plateau_patience=3,
     )
 
     n_params = sum(p.numel() for p in tft.parameters())
@@ -90,7 +90,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=16)
 
     parser.add_argument("--encoder-len", type=int, default=5)
-    parser.add_argument("--pred-len", type=int, default=1)
+    parser.add_argument("--pred-len", type=int, default=3)
 
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--hidden-size", type=int, default=64)
