@@ -146,3 +146,45 @@ export interface CoachResponse {
   mode: CoachMode;
   steps: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Comparative study types
+// ---------------------------------------------------------------------------
+
+export interface ModelMetrics {
+  accuracy: number | null;
+  precision: number | null;
+  recall: number | null;
+  f1: number | null;
+  auc: number | null;
+  brier: number | null;
+}
+
+export type MetricsTable = Record<string, ModelMetrics>;
+
+export interface StatsTest {
+  statistic: number;
+  p_value: number;
+  significant_at_0_05: boolean;
+  better: string;
+}
+
+export type StatsTests = Record<string, StatsTest>;
+
+export type ZoneBreakdown = Record<string, Record<string, number | null>>;
+
+export type AblationResults = Record<string, Record<string, number | null>>;
+
+export interface UncertaintyEntry {
+  ece: number | null;
+  brier: number | null;
+  mean_std: number | null;
+  interval_width_90pct: number | null;
+  method: string;
+  n_passes?: number;
+  note?: string;
+}
+
+export type UncertaintyMetrics = Record<string, UncertaintyEntry>;
+
+export type ShapCrossModel = Record<string, Record<string, number>>;

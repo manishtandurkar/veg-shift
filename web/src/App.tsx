@@ -9,6 +9,7 @@ import CropAdvisor from "./pages/CropAdvisor";
 import WaterIrrigation from "./pages/WaterIrrigation";
 import EconomicProtection from "./pages/EconomicProtection";
 import Explainability from "./pages/Explainability";
+import ModelComparison from "./pages/ModelComparison";
 import Reports from "./pages/Reports";
 import ResearchGaps from "./pages/ResearchGaps";
 
@@ -24,6 +25,7 @@ const App: React.FC = () => {
         <Route path="water" element={<WaterIrrigation />} />
         <Route path="economic" element={<EconomicProtection />} />
         <Route path="explain" element={<Explainability />} />
+        <Route path="compare" element={<ModelComparison />} />
         <Route path="reports" element={<Reports />} />
         <Route path="research" element={<ResearchGaps />} />
         <Route path="*" element={<Navigate to="/" replace />} />

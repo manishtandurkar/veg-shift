@@ -31,6 +31,7 @@ const Layout: React.FC = () => {
           <NavLink to="/water">{t(lang, 'nav.water')}</NavLink>
           <NavLink to="/economic">{t(lang, 'nav.economic')}</NavLink>
           <NavLink to="/explain">{t(lang, 'nav.explain')}</NavLink>
+          <NavLink to="/compare">{t(lang, 'nav.compare')}</NavLink>
           <NavLink to="/reports">{t(lang, 'nav.reports')}</NavLink>
           <NavLink to="/research">🔬 Research</NavLink>
         </nav>
@@ -63,11 +64,11 @@ const Layout: React.FC = () => {
           <span>Climate Action - Zero Hunger - Clean Water</span>
         </div>
         <div className="footer-tech">
-          <span>TFT · SHAP</span>
-          <span>FastAPI</span>
-          <span>React 18</span>
-          <span>Köppen-Geiger</span>
-          <span>FAO GAEZ · CGWB</span>
+          <span>TFT · TCN · Transformer</span>
+          <span>XGBoost · LightGBM · RF</span>
+          <span>SHAP · MC Dropout</span>
+          <span>FastAPI · React 18</span>
+          <span>Köppen-Geiger · FAO GAEZ · CGWB</span>
         </div>
       </footer>
 

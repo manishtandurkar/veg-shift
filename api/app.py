@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -9,6 +11,19 @@ from pydantic import BaseModel
 from api.data_store import get_payload
 from api.coach import generate_coach_plan
 from api.chatbot import chatbot
+
+_COMPARATIVE_DIR = Path(__file__).resolve().parents[1] / "data" / "output" / "comparative"
+_OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data" / "output"
+
+
+def _load_json_file(path: Path) -> Any:
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"File not found: {path.name}. Run the corresponding pipeline step first.",
+        )
+    with path.open("r", encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 class ChatRequest(BaseModel):
@@ -129,5 +144,39 @@ def coach(request: CoachRequest) -> dict:
         return generate_coach_plan(request.model_dump())
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Coach error: {str(e)}")
+
+
+# ------------------------------------------------------------------
+# Research / comparative study endpoints
+# ------------------------------------------------------------------
+
+@app.get("/comparative/metrics")
+def comparative_metrics() -> dict:
+    return _load_json_file(_COMPARATIVE_DIR / "metrics_table.json")
+
+
+@app.get("/comparative/stats")
+def comparative_stats() -> dict:
+    return _load_json_file(_COMPARATIVE_DIR / "stats_tests.json")
+
+
+@app.get("/comparative/zones")
+def comparative_zones() -> dict:
+    return _load_json_file(_COMPARATIVE_DIR / "zone_breakdown.json")
+
+
+@app.get("/comparative/ablation")
+def ablation() -> dict:
+    return _load_json_file(_OUTPUT_DIR / "ablation_results.json")
+
+
+@app.get("/comparative/uncertainty")
+def uncertainty() -> dict:
+    return _load_json_file(_OUTPUT_DIR / "uncertainty_metrics.json")
+
+
+@app.get("/comparative/shap")
+def shap_cross_model() -> dict:
+    return _load_json_file(_OUTPUT_DIR / "shap_cross_model.json")
 
 

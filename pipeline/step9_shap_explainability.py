@@ -1,115 +1,126 @@
-"""Step 9 - SHAP explainability for Random Forest baseline."""
+"""Step 9 - SHAP explainability for tree-based models (RF, XGBoost, LightGBM)."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import pathlib
 
 import joblib
 import numpy as np
 import pandas as pd
 import shap
 
+try:
+    from pipeline.research_shared import FEATURES
+except ModuleNotFoundError:
+    from research_shared import FEATURES
 
-FEATURES = [
-    "temp_mean",
-    "temp_max",
-    "rainfall_annual",
-    "wind_speed",
-    "humidity",
-    "n_dry_months",
-    "monsoon_onset_doy",
-    "sowing_window_miss",
-    "gdd_accumulation",
-    "crop_water_deficit",
-    "pre_monsoon_depth_mbgl",
-    "depletion_rate",
-    "recharge_efficiency",
-    "dual_deficit",
-    "gdd_adequate",
-    "gaez_baseline_class",
-    "koppen_zone_enc",
-]
+
+def _explain_tree_model(model, X_scaled: np.ndarray) -> np.ndarray:
+    """Return per-sample SHAP values (positive-class) for any tree model."""
+    explainer = shap.TreeExplainer(model)
+    sv = explainer.shap_values(X_scaled)
+
+    if isinstance(sv, list):
+        arr = np.asarray(sv[1]) if len(sv) > 1 else np.asarray(sv[0])
+    else:
+        arr = np.asarray(sv)
+        if arr.ndim == 3:
+            arr = arr[:, :, 1]
+
+    if arr.ndim != 2:
+        raise ValueError(f"Unexpected SHAP values shape: {arr.shape}")
+    return arr
+
+
+def _summarise(sv: np.ndarray, city_arr: np.ndarray) -> dict:
+    mean_abs = np.abs(sv).mean(axis=0)
+    global_importance = sorted(
+        [{"feature": f, "mean_abs_shap": float(v)} for f, v in zip(FEATURES, mean_abs)],
+        key=lambda x: x["mean_abs_shap"],
+        reverse=True,
+    )
+    shap_df = pd.DataFrame(sv, columns=FEATURES)
+    shap_df["city"] = city_arr
+    city_importance: dict[str, dict[str, float]] = {}
+    for city, cdf in shap_df.groupby("city", sort=True):
+        top = (
+            pd.Series(np.abs(cdf[FEATURES].to_numpy()).mean(axis=0), index=FEATURES)
+            .sort_values(ascending=False)
+            .head(5)
+        )
+        city_importance[str(city)] = {k: float(v) for k, v in top.items()}
+    return {"global_importance": global_importance, "city_importance": city_importance}
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate SHAP explanations for VegShift RF baseline (Step 9).")
+    parser = argparse.ArgumentParser(description="SHAP explainability for tree models (Step 9).")
     parser.add_argument("--input", default="data/processed/vegshift_master.csv")
-    parser.add_argument("--rf-model", default="models/baselines/rf_baseline.pkl")
-    parser.add_argument("--scaler", default="models/baselines/scaler.pkl")
-    parser.add_argument("--output", default="data/output/shap_explanation.json")
+    parser.add_argument("--models-dir", default="models/baselines")
+    parser.add_argument("--output-dir", default="data/output")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    models_dir = pathlib.Path(args.models_dir)
+    out_dir = pathlib.Path(args.output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     df = pd.read_csv(args.input)
-    required_cols = FEATURES + ["city", "year"]
-    missing_cols = [col for col in required_cols if col not in df.columns]
-    if missing_cols:
-        raise ValueError(f"Missing required columns in input data: {missing_cols}")
+    required = FEATURES + ["city", "year"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
 
-    df = df.copy()
+    data = df.copy()
     for col in FEATURES:
-        df[col] = df.groupby("city")[col].transform(lambda x: x.fillna(x.mean()))
-        if df[col].isna().any():
-            df[col] = df[col].fillna(df[col].median())
+        data[col] = data.groupby("city")[col].transform(lambda x: x.fillna(x.mean()))
+        if data[col].isna().any():
+            data[col] = data[col].fillna(data[col].median())
+    data = data.dropna(subset=["city", "year"])
+    if data.empty:
+        raise ValueError("No rows available after cleaning.")
 
-    df = df.dropna(subset=["city", "year"])
-    if df.empty:
-        raise ValueError("No rows available for SHAP after city/year validation.")
+    scaler = joblib.load(models_dir / "scaler.pkl")
+    X_scaled = scaler.transform(data[FEATURES].to_numpy(dtype=float))
+    city_arr = data["city"].to_numpy()
 
-    rf = joblib.load(args.rf_model)
-    scaler = joblib.load(args.scaler)
-
-    X_scaled = scaler.transform(df[FEATURES].to_numpy(dtype=float))
-    explainer = shap.TreeExplainer(rf)
-    shap_values = explainer.shap_values(X_scaled)
-
-    if isinstance(shap_values, list):
-        sv = np.asarray(shap_values[1]) if len(shap_values) > 1 else np.asarray(shap_values[0])
-    else:
-        sv = np.asarray(shap_values)
-        if sv.ndim == 3:
-            sv = sv[:, :, 1]
-
-    if sv.ndim != 2:
-        raise ValueError(f"Unexpected SHAP values shape: {sv.shape}")
-
-    shap_df = pd.DataFrame(sv, columns=FEATURES)
-    shap_df["city"] = df["city"].to_numpy()
-    shap_df["year"] = df["year"].to_numpy()
-
-    mean_abs = np.abs(sv).mean(axis=0)
-    global_importance = pd.DataFrame(
-        {"feature": FEATURES, "mean_abs_shap": mean_abs}
-    ).sort_values("mean_abs_shap", ascending=False)
-
-    city_importance: dict[str, dict[str, float]] = {}
-    for city, city_df in shap_df.groupby("city", sort=True):
-        city_values = np.abs(city_df[FEATURES].to_numpy()).mean(axis=0)
-        city_top = (
-            pd.Series(city_values, index=FEATURES)
-            .sort_values(ascending=False)
-            .head(5)
-        )
-        city_importance[city] = {k: float(v) for k, v in city_top.to_dict().items()}
-
-    output = {
-        "global_importance": [
-            {"feature": str(row.feature), "mean_abs_shap": float(row.mean_abs_shap)}
-            for row in global_importance.itertuples(index=False)
-        ],
-        "city_importance": city_importance,
+    model_files = {
+        "random_forest": models_dir / "rf_baseline.pkl",
+        "xgboost": models_dir / "xgb_baseline.pkl",
+        "lightgbm": models_dir / "lgb_baseline.pkl",
     }
 
-    with open(args.output, "w", encoding="utf-8") as handle:
-        json.dump(output, handle, indent=2)
+    combined: dict[str, dict] = {}
+    for model_name, model_path in model_files.items():
+        if not model_path.exists():
+            print(f"  Skipping {model_name}: model file not found at {model_path}")
+            continue
+        print(f"  Computing SHAP for {model_name} ...")
+        model = joblib.load(model_path)
+        sv = _explain_tree_model(model, X_scaled)
+        combined[model_name] = _summarise(sv, city_arr)
 
-    print(f"SHAP explanation saved: {args.output}")
-    print(f"Global features: {len(output['global_importance'])}")
-    print(f"Cities explained: {len(output['city_importance'])}")
+        per_model_path = out_dir / f"shap_{model_name}.json"
+        with open(per_model_path, "w", encoding="utf-8") as fh:
+            json.dump(combined[model_name], fh, indent=2)
+        print(f"    Saved: {per_model_path}")
+
+    # Cross-model global importance comparison
+    cross_model: dict[str, dict[str, float]] = {}
+    for model_name, summary in combined.items():
+        cross_model[model_name] = {
+            row["feature"]: row["mean_abs_shap"]
+            for row in summary["global_importance"]
+        }
+
+    with open(out_dir / "shap_cross_model.json", "w", encoding="utf-8") as fh:
+        json.dump(cross_model, fh, indent=2)
+
+    print(f"\nSHAP analysis complete. {len(combined)} models explained.")
+    print(f"Cross-model comparison saved: {out_dir / 'shap_cross_model.json'}")
 
 
 if __name__ == "__main__":
