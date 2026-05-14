@@ -52,7 +52,6 @@ const AdvisoryCard: React.FC<{ crop: CropScore; rank: number }> = ({ crop, rank 
           <div
             className="score-bar-fill"
             style={{
-              width: `${scorePct * 100}%`,
               "--bar-scale": scorePct,
               "--delay": `${rank * 0.08}s`,
             } as React.CSSProperties}

@@ -736,9 +736,11 @@ button.ghost:hover { background: var(--accent-light); }
 }
 
 .score-bar-fill {
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #3f7a4a, #5dab6e);
+  transform-origin: left;
   animation: growBar 0.8s ease both;
   animation-delay: var(--delay, 0s);
 }
