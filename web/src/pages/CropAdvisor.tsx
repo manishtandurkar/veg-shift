@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
 import AdvisoryCard from "../components/AdvisoryCard";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 const CropAdvisor: React.FC = () => {
   const { selectedCity } = useCityContext();
@@ -10,35 +12,36 @@ const CropAdvisor: React.FC = () => {
 
   const crops = detail?.advisory.ranked_crops ?? [];
   const filtered = filter === "all" ? crops : crops.filter((c) => c.season === filter);
+  const { lang } = useLanguage();
 
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Crop Advisor</h1>
-          <p>14 crops ranked by climate suitability, trajectory penalty, and zone alignment.</p>
+          <h1>{t(lang, 'nav.crops')}</h1>
+          <p>{t(lang, "crops.desc")}</p>
         </div>
         {selectedCity && <span className="tag">{selectedCity} · {detail?.advisory.current_zone}</span>}
       </div>
 
       {/* Scoring methodology */}
       <div className="card">
-        <div className="card-header">
-          <h3>Ranking methodology</h3>
-          <span className="tag">Step 15 pipeline output</span>
+          <div className="card-header">
+          <h3>{t(lang, "crops.method")}</h3>
+          <span className="tag">{t(lang, "crops.pipeline_output")}</span>
         </div>
         <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>FAO GAEZ suitability</div>
-            <p style={{ fontSize: "0.83rem", margin: 0 }}>Crop-specific climate and soil fit from GeoTIFF raster data.</p>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{t(lang, "crops.gaez")}</div>
+            <p style={{ fontSize: "0.83rem", margin: 0 }}>{t(lang, "crops.gaez_desc")}</p>
           </div>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Trajectory penalty</div>
-            <p style={{ fontSize: "0.83rem", margin: 0 }}>Penalises crops with worsening viability slope over the last 5 years.</p>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{t(lang, "crops.trajectory")}</div>
+            <p style={{ fontSize: "0.83rem", margin: 0 }}>{t(lang, "crops.trajectory_desc")}</p>
           </div>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Zone alignment</div>
-            <p style={{ fontSize: "0.83rem", margin: 0 }}>Bonus for crops whose ideal Köppen zone matches the city's current zone.</p>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{t(lang, "crops.zone_alignment")}</div>
+            <p style={{ fontSize: "0.83rem", margin: 0 }}>{t(lang, "crops.zone_alignment_desc")}</p>
           </div>
         </div>
       </div>
@@ -64,15 +67,17 @@ const CropAdvisor: React.FC = () => {
                 textTransform: "capitalize",
               }}
             >
-              {s === "all" ? `All (${crops.length})` : `${s.charAt(0).toUpperCase() + s.slice(1)} (${crops.filter(c => c.season === s).length})`}
+              {s === "all"
+                ? `${t(lang, "season.all")} (${crops.length})`
+                : `${t(lang, `season.${s}`)} (${crops.filter(c => c.season === s).length})`}
             </button>
           ))}
         </div>
       )}
 
-      {loading && <p>Loading crop advisory…</p>}
+      {loading && <p>{t(lang, 'loading')}</p>}
       {error && <p className="error">{error}</p>}
-      {!selectedCity && <p className="muted">Select a city from the header to view crop recommendations.</p>}
+      {!selectedCity && <p className="muted">{t(lang, 'select.city.header_hint')}</p>}
 
       {detail && (
         <div className="card-grid">
@@ -83,7 +88,7 @@ const CropAdvisor: React.FC = () => {
       )}
 
       {detail && filtered.length === 0 && (
-        <div className="card muted">No {filter} crops in the ranking for this city.</div>
+        <div className="card muted">{t(lang, "crops.empty", { season: t(lang, `season.${filter}`) })}</div>
       )}
     </section>
   );

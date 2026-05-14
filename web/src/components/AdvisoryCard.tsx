@@ -1,5 +1,7 @@
 import React from "react";
 import type { CropScore } from "../api/types";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 const RANK_CLASSES = ["gold", "silver", "bronze"];
 
@@ -22,6 +24,7 @@ const AdvisoryCard: React.FC<{ crop: CropScore; rank: number }> = ({ crop, rank 
   const rankClass = rank <= 3 ? RANK_CLASSES[rank - 1] : "";
   const scorePct = Math.min(1, Math.max(0, crop.score / 100));
   const scoreColor = scorePct >= 0.65 ? "var(--risk-low)" : scorePct >= 0.4 ? "var(--risk-medium)" : "var(--risk-high)";
+  const { lang } = useLanguage();
 
   return (
     <div className={`card advisory-card ${crop.zone_match ? "zone-match" : "zone-mismatch"}`}>
@@ -37,7 +40,7 @@ const AdvisoryCard: React.FC<{ crop: CropScore; rank: number }> = ({ crop, rank 
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 4 }}>
             <span className="tag" style={{ fontSize: "0.68rem", padding: "2px 7px", textTransform: "capitalize" }}>{crop.season}</span>
             <span className={`tag ${crop.zone_match ? "risk-low" : "risk-high"}`} style={{ fontSize: "0.68rem", padding: "2px 7px" }}>
-              {crop.zone_match ? "✓ Zone match" : "⚠ Mismatch"}
+              {crop.zone_match ? t(lang, 'advisory.zone_match') : t(lang, 'advisory.zone_mismatch')}
             </span>
           </div>
         </div>
@@ -45,7 +48,7 @@ const AdvisoryCard: React.FC<{ crop: CropScore; rank: number }> = ({ crop, rank 
 
       <div className="score-bar-row">
         <div className="score-bar-label">
-          <span>Viability score</span>
+          <span>{t(lang, 'advisory.viability')}</span>
           <strong style={{ color: scoreColor }}>{(scorePct * 100).toFixed(0)}%</strong>
         </div>
         <div className="score-bar-track">

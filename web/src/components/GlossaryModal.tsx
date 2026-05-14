@@ -1,5 +1,7 @@
 import React from "react";
 import { glossary } from "../data/glossary";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 interface GlossaryModalProps {
   open: boolean;
@@ -7,14 +9,15 @@ interface GlossaryModalProps {
 }
 
 const GlossaryModal: React.FC<GlossaryModalProps> = ({ open, onClose }) => {
+  const { lang } = useLanguage();
   if (!open) return null;
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal">
         <header>
-          <h3>Glossary</h3>
+          <h3>{t(lang, 'glossary.title')}</h3>
           <button type="button" onClick={onClose}>
-            Close
+            {t(lang, 'glossary.close')}
           </button>
         </header>
         <div className="modal-body">

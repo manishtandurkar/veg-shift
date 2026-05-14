@@ -7,12 +7,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from api.data_store import get_payload
+from api.coach import generate_coach_plan
 from api.chatbot import chatbot
 
 
 class ChatRequest(BaseModel):
     message: str
     history: list[dict[str, Any]] = []
+
+
+class CoachRequest(BaseModel):
+    city: str
+    language: str = "en"
+    irrigation_method: str
+    sowing_window: str
+    avoid_crops: list[str] = []
+    recommended_crops: list[str] = []
+    profile: dict[str, Any] | None = None
 
 app = FastAPI(title="VegShift API", version="1.0")
 
@@ -110,5 +121,13 @@ def chat(request: ChatRequest) -> dict:
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+
+
+@app.post("/coach")
+def coach(request: CoachRequest) -> dict:
+    try:
+        return generate_coach_plan(request.model_dump())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Coach error: {str(e)}")
 
 

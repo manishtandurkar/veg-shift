@@ -1,6 +1,8 @@
 import React from "react";
 import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 interface ShapItem { feature: string; score: number; }
 
@@ -62,13 +64,14 @@ const ShapBar: React.FC<{ items: ShapItem[]; delay?: number }> = ({ items, delay
 const Explainability: React.FC = () => {
   const { selectedCity } = useCityContext();
   const { detail, loading, error } = useCityDetail(selectedCity);
+  const { lang } = useLanguage();
 
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Model Explainability</h1>
-          <p>SHAP-based feature importance showing which climate signals drive the risk forecast.</p>
+          <h1>{t(lang, 'nav.explain')}</h1>
+          <p>{t(lang, "explain.desc")}</p>
         </div>
         {selectedCity && <span className="tag">{selectedCity}</span>}
       </div>
@@ -76,60 +79,61 @@ const Explainability: React.FC = () => {
       {/* Methodology card */}
       <div className="card">
         <div className="card-header">
-          <h3>How we explain the model</h3>
+          <h3>{t(lang, "explain.method")}</h3>
           <span className="tag">SHAP TreeExplainer</span>
         </div>
         <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Model</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{t(lang, "explain.model")}</div>
             <div style={{ fontWeight: 600 }}>Temporal Fusion Transformer</div>
             <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>5-year encoder · quantile output</div>
           </div>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Explainer</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{t(lang, "explain.explainer")}</div>
             <div style={{ fontWeight: 600 }}>SHAP TreeExplainer</div>
             <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>Random Forest surrogate</div>
           </div>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Bar length</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{t(lang, "explain.bar_colour")}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 28, height: 8, borderRadius: 4, background: "linear-gradient(90deg, var(--accent-dark), var(--accent))" }} />
-                <span style={{ fontSize: "0.82rem" }}>Mean |SHAP| — larger = stronger driver</span>
+                <div style={{ width: 28, height: 8, borderRadius: 4, background: "#3f7a4a" }} />
+                <span style={{ fontSize: "0.82rem" }}>{t(lang, "explain.increases")}</span>
               </div>
-              <div style={{ fontSize: "0.8rem", color: "var(--muted)", lineHeight: 1.4 }}>
-                Values are mean absolute SHAP across all years for this city.
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 28, height: 8, borderRadius: 4, background: "#b23a24" }} />
+                <span style={{ fontSize: "0.82rem" }}>{t(lang, "explain.decreases")}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {loading && <p>Loading explainability data...</p>}
+      {loading && <p>{t(lang, 'loading')}</p>}
       {error && <p className="error">{error}</p>}
-      {!selectedCity && <p className="muted">Select a city from the header or complete the intake form.</p>}
+      {!selectedCity && <p className="muted">{t(lang, 'select.city.header_hint')}</p>}
 
       {detail && (
         <>
           <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
             <div className="card">
               <div className="card-header">
-                <h3>City-level drivers</h3>
+                <h3>{t(lang, "explain.city_drivers")}</h3>
                 <span className="tag">{selectedCity}</span>
               </div>
               <p style={{ fontSize: "0.83rem", marginBottom: 16 }}>
-                Top features influencing the CVLE risk score specifically for {selectedCity}.
+                {t(lang, "explain.city_drivers_desc", { city: selectedCity || "" })}
               </p>
               <ShapBar items={detail.shap.city_top} delay={0.1} />
             </div>
 
             <div className="card">
               <div className="card-header">
-                <h3>Global drivers</h3>
-                <span className="tag">All 10 cities</span>
+                <h3>{t(lang, "explain.global_drivers")}</h3>
+                <span className="tag">{t(lang, "explain.all_cities")}</span>
               </div>
               <p style={{ fontSize: "0.83rem", marginBottom: 16 }}>
-                Features with the highest mean absolute SHAP value across all cities.
+                {t(lang, "explain.global_desc")}
               </p>
               <ShapBar items={detail.shap.global_top} delay={0.2} />
             </div>
@@ -138,28 +142,25 @@ const Explainability: React.FC = () => {
           {/* TFT attention weights if available */}
           <div className="card">
             <div className="card-header">
-              <h3>Interpretation guide</h3>
+              <h3>{t(lang, "explain.guide")}</h3>
             </div>
             <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
               <div>
-                <h4 style={{ fontSize: "0.9rem" }}>What SHAP measures</h4>
+                <h4 style={{ fontSize: "0.9rem" }}>{t(lang, "explain.what_shap")}</h4>
                 <p style={{ fontSize: "0.83rem" }}>
-                  Each bar shows the mean absolute SHAP value — how much a feature drives the
-                  prediction on average across all years. Longer bar = stronger overall influence.
+                  {t(lang, "explain.what_shap_desc")}
                 </p>
               </div>
               <div>
-                <h4 style={{ fontSize: "0.9rem" }}>Dual-deficit trigger</h4>
+                <h4 style={{ fontSize: "0.9rem" }}>{t(lang, "explain.dual")}</h4>
                 <p style={{ fontSize: "0.83rem" }}>
-                  A CVLE fires when atmospheric water deficit {">"} 40% AND groundwater recharge {"<"} 30%
-                  persist for 2+ consecutive years. These two features dominate SHAP scores.
+                  {t(lang, "explain.dual_desc")}
                 </p>
               </div>
               <div>
-                <h4 style={{ fontSize: "0.9rem" }}>City vs. global</h4>
+                <h4 style={{ fontSize: "0.9rem" }}>{t(lang, "explain.city_global")}</h4>
                 <p style={{ fontSize: "0.83rem" }}>
-                  Global drivers average across all 10 cities. City-level drivers may differ because
-                  each city has a unique climate trajectory and groundwater regime.
+                  {t(lang, "explain.city_global_desc")}
                 </p>
               </div>
             </div>

@@ -1,24 +1,29 @@
 import React from "react";
 import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 const EconomicProtection: React.FC = () => {
   const { selectedCity } = useCityContext();
   const { detail, loading, error } = useCityDetail(selectedCity);
+  const { lang } = useLanguage();
 
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Economic Protection</h1>
-          <p>MSP price floors, exploitation risk index, and government scheme discovery.</p>
+          <h1>{t(lang, "economic.title")}</h1>
+          <p>{t(lang, "economic.desc")}</p>
         </div>
         {selectedCity && <span className="tag">{selectedCity}</span>}
       </div>
 
-      {loading && <p>Loading economic data…</p>}
+      {loading && <p>{t(lang, "economic.loading")}</p>}
       {error && <p className="error">{error}</p>}
-      {!selectedCity && <p className="muted">Select a city from the header to view protection data.</p>}
+      {!selectedCity && (
+        <p className="muted">{t(lang, 'select.city.header_hint')}</p>
+      )}
 
       {detail && (
         <>
@@ -31,10 +36,9 @@ const EconomicProtection: React.FC = () => {
             }}>
               <span style={{ fontSize: "2rem" }}>⚠️</span>
               <div>
-                <h4 style={{ margin: "0 0 4px", color: "var(--risk-high)" }}>High exploitation risk detected</h4>
+                <h4 style={{ margin: "0 0 4px", color: "var(--risk-high)" }}>{t(lang, "dashboard.high_eri")}</h4>
                 <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                  The ERI score for {selectedCity} exceeds the alert threshold. Farmers in this region
-                  may be vulnerable to below-MSP price exploitation during distress seasons.
+                  {t(lang, "economic.alert_desc", { city: selectedCity || "" })}
                 </p>
               </div>
             </div>
@@ -43,46 +47,46 @@ const EconomicProtection: React.FC = () => {
           {/* Key numbers */}
           <div className="card-grid">
             <div className="card metric-card">
-              <div className="metric-label">Exploitation Risk Index</div>
+              <div className="metric-label">{t(lang, "dashboard.eri")}</div>
               <div className={`metric-value ${detail.eri.alert ? "metric-delta negative" : "metric-delta positive"}`}>
                 {(detail.eri.eri * 100).toFixed(1)}%
               </div>
               <p style={{ fontSize: "0.8rem", margin: 0 }}>
-                {detail.eri.alert ? "Alert: above threshold" : "Within safe range"}
+                {detail.eri.alert ? t(lang, "economic.above") : t(lang, "economic.safe")}
               </p>
             </div>
             <div className="card metric-card">
-              <div className="metric-label">Primary crop</div>
+              <div className="metric-label">{t(lang, "economic.primary_crop")}</div>
               <div className="metric-value" style={{ fontSize: "1.3rem", textTransform: "capitalize" }}>
                 {detail.eri.primary_crop ?? "—"}
               </div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Based on advisory ranking</p>
+              <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "economic.primary_desc")}</p>
             </div>
             <div className="card metric-card">
-              <div className="metric-label">MSP (per quintal)</div>
+              <div className="metric-label">{t(lang, "economic.msp_per")}</div>
               <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-                {detail.eri.msp_inr_per_quintal ? `₹${detail.eri.msp_inr_per_quintal}` : "N/A"}
+                {detail.eri.msp_inr_per_quintal ? `₹${detail.eri.msp_inr_per_quintal}` : t(lang, "not_available")}
               </div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Government minimum support price</p>
+              <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "economic.msp_desc")}</p>
             </div>
             <div className="card metric-card">
-              <div className="metric-label">Distress floor</div>
+              <div className="metric-label">{t(lang, "dashboard.distress_floor")}</div>
               <div className="metric-value metric-delta negative" style={{ fontSize: "1.4rem" }}>
-                {detail.eri.distress_price_threshold ? `₹${detail.eri.distress_price_threshold}` : "N/A"}
+                {detail.eri.distress_price_threshold ? `₹${detail.eri.distress_price_threshold}` : t(lang, "not_available")}
               </div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Threshold below which to alert</p>
+              <p style={{ fontSize: "0.8rem", margin: 0 }}>{t(lang, "economic.floor_desc")}</p>
             </div>
           </div>
 
           {/* Schemes + crops */}
           <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
             <div className="card">
-              <h3>Government schemes</h3>
+              <h3>{t(lang, "economic.schemes")}</h3>
               <div style={{ display: "grid", gap: 12 }}>
                 {detail.eri.procurement_center && (
                   <div style={{ padding: "12px 16px", background: "rgba(30,42,36,0.05)", borderRadius: 12, border: "1px solid var(--border)" }}>
                     <div style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
-                      Procurement center
+                      {t(lang, "economic.procurement")}
                     </div>
                     <div style={{ fontWeight: 600 }}>{detail.eri.procurement_center}</div>
                   </div>
@@ -90,7 +94,7 @@ const EconomicProtection: React.FC = () => {
                 {detail.eri.crop_insurance_scheme && (
                   <div style={{ padding: "12px 16px", background: "rgba(30,42,36,0.05)", borderRadius: 12, border: "1px solid var(--border)" }}>
                     <div style={{ fontSize: "0.75rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
-                      Insurance scheme
+                      {t(lang, "economic.insurance")}
                     </div>
                     <div style={{ fontWeight: 600 }}>{detail.eri.crop_insurance_scheme}</div>
                   </div>
@@ -100,9 +104,9 @@ const EconomicProtection: React.FC = () => {
 
             {detail.eri.alternative_crops?.length > 0 && (
               <div className="card">
-                <h3>Lower-risk alternatives</h3>
+                <h3>{t(lang, "economic.alternatives")}</h3>
                 <p style={{ fontSize: "0.83rem", marginBottom: 14 }}>
-                  Crops with lower exploitation risk scores and better zone alignment:
+                  {t(lang, "economic.alt_desc")}
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {detail.eri.alternative_crops.map((crop: string) => (
@@ -120,12 +124,9 @@ const EconomicProtection: React.FC = () => {
             <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               <span style={{ fontSize: "2rem" }}>📜</span>
               <div>
-                <h4 style={{ margin: "0 0 6px" }}>About the Exploitation Risk Index (ERI)</h4>
+                <h4 style={{ margin: "0 0 6px" }}>{t(lang, "economic.about_title")}</h4>
                 <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                  ERI combines three signals: (1) how far the market price has fallen below MSP,
-                  (2) the severity of the dual-deficit water stress, and (3) the trajectory of CVLE
-                  events in the last 5 years. A score above 0.65 triggers an alert — farmers should
-                  contact the nearest procurement center before selling.
+                  {t(lang, "economic.about_desc")}
                 </p>
               </div>
             </div>

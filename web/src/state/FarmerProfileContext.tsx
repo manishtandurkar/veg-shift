@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 
-export interface FarmerProfile {
+export type FarmerProfile = {
   desiredCrop: string;
   budgetINR: string;
   landSizeHa: string;
   waterAccess: string;
   irrigationType: string;
   season: string;
-}
+};
 
 interface FarmerProfileState {
   profile: FarmerProfile;
