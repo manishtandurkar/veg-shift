@@ -781,10 +781,12 @@ If Pune/Kolkata/Mumbai show deterioration, the labels are wrong. Controls valida
 | Explainability | SHAP | Industry-standard TreeExplainer |
 | Visualization | Plotly + Dash | Interactive 11-panel research dashboard |
 | API layer | FastAPI + Uvicorn | REST endpoints serving precomputed outputs |
-| Frontend | React 18 + Vite | 9-page decision-first farmer UI |
+| Frontend | React 18 + Vite | 8-page decision-first farmer UI |
+| Multilingual UI | Custom i18n module | English, Hindi, and Kannada translations; language preference persisted in localStorage |
+| AI Coach | Rule-based logic + optional OpenAI GPT-4o-mini | Per-city farming action plan in the Dashboard; falls back to rule-based steps if `OPENAI_API_KEY` is not set |
 | Chatbot | TF-IDF (scikit-learn) | Knowledge-base retrieval over docs + outputs |
 | Orchestration | Python subprocess | Sequential step execution |
-| Testing | pytest | 29 tests covering all pipeline stages |
+| Testing | pytest | 30 tests covering all pipeline stages |
 
 ---
 
@@ -836,7 +838,7 @@ The web app has eight pages:
 |---|---|
 | `/` | Landing — project overview, live risk meters for all 10 cities |
 | `/intake` | Farmer profile form (name, city, land size, crop) |
-| `/dashboard` | ERI gauge, risk meter, advisory cards, trend strip, action steps — gated until intake is submitted |
+| `/dashboard` | ERI gauge, risk meter, advisory cards, trend strip, AI Coach action steps (rule-based or LLM) — gated until intake is submitted |
 | `/crops` | 14-crop ranked suitability table with trajectory penalty scores |
 | `/water` | RSI level, irrigation method, recharge trend, government schemes |
 | `/economic` | ERI component breakdown, MSP alert, distress threshold, procurement links |
@@ -844,6 +846,10 @@ The web app has eight pages:
 | `/reports` | Full city report with all outputs in one view |
 
 A **persistent AI chatbot** sits in the bottom-right corner of every page. It uses a TF-IDF knowledge base built from all `docs/` markdown files and key `data/output/` JSON files. Each response includes source attribution badges so you can trace the answer back to the exact document or pipeline output it came from.
+
+The **AI Coach** (Dashboard `ActionSteps` panel) is a separate feature: it calls the `/coach` API endpoint to produce a 5–7 step personalized farming action plan. It uses a rule-based engine by default; if `OPENAI_API_KEY` is set, it calls GPT-4o-mini for richer, context-aware steps.
+
+The entire UI supports **three languages**: English, Hindi (हिन्दी), and Kannada (ಕನ್ನಡ), switchable via a dropdown in the navbar. Language preference is saved in `localStorage`.
 
 ---
 
