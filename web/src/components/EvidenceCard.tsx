@@ -10,14 +10,14 @@ const EvidenceCard: React.FC<{ item: EvidenceItem }> = ({ item }) => {
       </div>
       <p>{item.summary}</p>
       <div className="evidence-footer">
-        <span>{item.date}</span>
+        <span>{item.date !== "YYYY-MM-DD" ? item.date : ""}</span>
         {item.url ? (
           <a href={item.url} target="_blank" rel="noreferrer">
             View source
           </a>
-        ) : (
+        ) : item.is_placeholder ? (
           <span className="muted">Source pending</span>
-        )}
+        ) : null}
       </div>
     </article>
   );
