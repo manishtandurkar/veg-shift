@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import CitySelector from "./CitySelector";
 import GlossaryModal from "./GlossaryModal";
 import Chatbot from "./Chatbot";
 import { useCityContext } from "../state/CityContext";
@@ -34,7 +33,6 @@ const Layout: React.FC = () => {
         </nav>
 
         <div className="header-actions">
-          <CitySelector />
           <button type="button" className="ghost" onClick={() => setGlossaryOpen(true)}>
             Glossary
           </button>
