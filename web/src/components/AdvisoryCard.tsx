@@ -13,7 +13,7 @@ const CROP_ICONS: Record<string, string> = {
 function cropIcon(name: string): string {
   const key = name.toLowerCase();
   for (const [k, v] of Object.entries(CROP_ICONS)) {
-    if (key.includes(k)) return v;
+    if (key.includes(k.toLowerCase())) return v;
   }
   return "🌱";
 }

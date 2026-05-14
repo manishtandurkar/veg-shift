@@ -91,15 +91,14 @@ const Explainability: React.FC = () => {
             <div style={{ fontSize: "0.82rem", color: "var(--muted)" }}>Random Forest surrogate</div>
           </div>
           <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Bar colour</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Bar length</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 28, height: 8, borderRadius: 4, background: "#3f7a4a" }} />
-                <span style={{ fontSize: "0.82rem" }}>Increases risk</span>
+                <div style={{ width: 28, height: 8, borderRadius: 4, background: "linear-gradient(90deg, var(--accent-dark), var(--accent))" }} />
+                <span style={{ fontSize: "0.82rem" }}>Mean |SHAP| — larger = stronger driver</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 28, height: 8, borderRadius: 4, background: "#b23a24" }} />
-                <span style={{ fontSize: "0.82rem" }}>Decreases risk</span>
+              <div style={{ fontSize: "0.8rem", color: "var(--muted)", lineHeight: 1.4 }}>
+                Values are mean absolute SHAP across all years for this city.
               </div>
             </div>
           </div>
@@ -145,8 +144,8 @@ const Explainability: React.FC = () => {
               <div>
                 <h4 style={{ fontSize: "0.9rem" }}>What SHAP measures</h4>
                 <p style={{ fontSize: "0.83rem" }}>
-                  Each bar shows how much a feature pushes the prediction higher or lower. Longer bar
-                  = stronger influence on this city's risk forecast.
+                  Each bar shows the mean absolute SHAP value — how much a feature drives the
+                  prediction on average across all years. Longer bar = stronger overall influence.
                 </p>
               </div>
               <div>

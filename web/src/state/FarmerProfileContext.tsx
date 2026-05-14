@@ -11,7 +11,9 @@ export interface FarmerProfile {
 
 interface FarmerProfileState {
   profile: FarmerProfile;
+  hasSubmitted: boolean;
   setProfile: (profile: FarmerProfile) => void;
+  markSubmitted: () => void;
 }
 
 const defaultProfile: FarmerProfile = {
@@ -27,8 +29,14 @@ const FarmerProfileContext = createContext<FarmerProfileState | undefined>(undef
 
 export const FarmerProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [profile, setProfile] = useState<FarmerProfile>(defaultProfile);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const value = useMemo(() => ({ profile, setProfile }), [profile]);
+  const markSubmitted = () => setHasSubmitted(true);
+
+  const value = useMemo(
+    () => ({ profile, hasSubmitted, setProfile, markSubmitted }),
+    [profile, hasSubmitted]
+  );
 
   return <FarmerProfileContext.Provider value={value}>{children}</FarmerProfileContext.Provider>;
 };

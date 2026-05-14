@@ -5,7 +5,7 @@ import { useFarmerProfile } from "../state/FarmerProfileContext";
 
 const Intake: React.FC = () => {
   const { selectedCity, setSelectedCity, cities, loading, error } = useCityContext();
-  const { profile, setProfile } = useFarmerProfile();
+  const { profile, setProfile, markSubmitted } = useFarmerProfile();
   const [local, setLocal] = useState(profile);
   const navigate = useNavigate();
 
@@ -16,6 +16,7 @@ const Intake: React.FC = () => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     setProfile(local);
+    markSubmitted();
     navigate("/dashboard");
   };
 

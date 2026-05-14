@@ -36,19 +36,22 @@ const EriGauge: React.FC<{ value: number; alert: boolean }> = ({ value, alert })
 
 const Dashboard: React.FC = () => {
   const { selectedCity, cities } = useCityContext();
-  const { profile } = useFarmerProfile();
+  const { profile, hasSubmitted } = useFarmerProfile();
   const { detail, loading, error } = useCityDetail(selectedCity);
   const summary = cities.find((c) => c.city === selectedCity);
 
-  if (!selectedCity) {
+  if (!hasSubmitted) {
     return (
       <section className="page">
         <div className="card" style={{ textAlign: "center", padding: 48 }}>
           <div style={{ fontSize: "3rem", marginBottom: 16 }}>🌾</div>
-          <h3>No city selected</h3>
-          <p>Complete the intake form so we can personalise the analysis for your farm.</p>
+          <h3>Complete the intake form first</h3>
+          <p>
+            The decision dashboard is personalised to your farm profile — city, crop goal, budget,
+            water access, and season. Fill in the intake form to unlock your analysis.
+          </p>
           <a className="primary" href="/intake" style={{ marginTop: 16, display: "inline-block" }}>
-            → Go to intake
+            → Start intake
           </a>
         </div>
       </section>
@@ -114,7 +117,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="card metric-card">
               <div className="metric-label">Trend Slope</div>
-              <div className={`metric-value ${detail.trend.slope < 0 ? "metric-delta negative" : "metric-delta positive"}`}>
+              <div className={`metric-value ${detail.trend.trend === "deteriorating" ? "metric-delta negative" : detail.trend.trend === "improving" ? "metric-delta positive" : ""}`}>
                 {detail.trend.slope.toFixed(4)}
               </div>
               <p style={{ fontSize: "0.8rem", margin: 0 }}>Per year · R² = {detail.trend.r_squared.toFixed(3)}</p>

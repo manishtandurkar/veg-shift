@@ -665,8 +665,8 @@ button.ghost:hover { background: var(--accent-light); }
   animation: growBar 0.7s ease both;
 }
 
-.shap-bar-fill.positive { background: linear-gradient(90deg, #3f7a4a, #5dab6e); }
-.shap-bar-fill.negative { background: linear-gradient(90deg, #b23a24, #e05c44); }
+.shap-bar-fill.positive { background: linear-gradient(90deg, var(--accent-dark), var(--accent)); }
+.shap-bar-fill.negative { background: linear-gradient(90deg, var(--accent-dark), var(--accent)); }
 
 @keyframes growBar {
   from { transform: scaleX(0); }
@@ -1332,7 +1332,6 @@ button.ghost:hover { background: var(--accent-light); }
 }
 
 .metric-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.metric-delta { font-size: 0.82rem; }
 .metric-delta.positive { color: var(--risk-low); }
 .metric-delta.negative { color: var(--risk-high); }
 

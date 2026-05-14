@@ -12,7 +12,11 @@ export function useCityDetail(city: string) {
   useEffect(() => {
     let active = true;
     async function load() {
-      if (!city) return;
+      if (!city) {
+        setLoading(false);
+        setDetail(null);
+        return;
+      }
       setLoading(true);
       setError(null);
       if (cache.has(city)) {

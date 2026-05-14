@@ -58,7 +58,7 @@ const CityOverview: React.FC = () => {
         {detail && (
           <div className="card metric-card">
             <div className="metric-label">Trend slope</div>
-            <div className={`metric-value ${detail.trend.slope < 0 ? "metric-delta negative" : "metric-delta positive"}`}>
+            <div className={`metric-value ${detail.trend.trend === "deteriorating" ? "metric-delta negative" : detail.trend.trend === "improving" ? "metric-delta positive" : ""}`}>
               {detail.trend.slope.toFixed(4)}
             </div>
             <p style={{ fontSize: "0.8rem", margin: 0 }}>Per year · R² = {detail.trend.r_squared.toFixed(3)}</p>
