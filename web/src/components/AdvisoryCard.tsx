@@ -20,7 +20,7 @@ function cropIcon(name: string): string {
 
 const AdvisoryCard: React.FC<{ crop: CropScore; rank: number }> = ({ crop, rank }) => {
   const rankClass = rank <= 3 ? RANK_CLASSES[rank - 1] : "";
-  const scorePct = Math.min(1, Math.max(0, crop.score));
+  const scorePct = Math.min(1, Math.max(0, crop.score / 100));
   const scoreColor = scorePct >= 0.65 ? "var(--risk-low)" : scorePct >= 0.4 ? "var(--risk-medium)" : "var(--risk-high)";
 
   return (
