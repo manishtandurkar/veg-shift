@@ -1,10 +1,33 @@
 export type RiskLevel = "low" | "medium" | "high";
 
+export interface CropBreakdown {
+  zone: number;
+  temp: number;
+  water: number;
+  gw: number;
+  trajectory: number;
+}
+
+export interface CropSpec {
+  max_temp: number;
+  water_req: number;
+  zones: string[];
+}
+
 export interface CropScore {
   crop: string;
   score: number;
   season: string;
   zone_match: boolean;
+  breakdown?: CropBreakdown;
+  crop_spec?: CropSpec;
+}
+
+export interface ClimateContext {
+  t_max: number;
+  rainfall_mm: number;
+  gw_depth_mbgl: number;
+  depletion_rate: number;
 }
 
 export interface CitySummary {
@@ -77,6 +100,7 @@ export interface CityDetail {
     rain_trend_5yr: number;
     temp_trend_5yr: number;
     gw_trend_5yr: number;
+    climate_context?: ClimateContext;
     ranked_crops: CropScore[];
   };
   irrigation: {
