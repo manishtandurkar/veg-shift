@@ -319,7 +319,9 @@ const ModelComparison: React.FC = () => {
                         {MODEL_CATEGORY[name] ?? "—"}
                       </td>
                       <td style={{ textAlign: "right", padding: "8px 12px" }}>
-                        <MetricBadge value={m.auc} />
+                        {isTFT
+                          ? <span title="TFT predictions cover year 2021 only — all-negative split, AUC undefined. Extend step7 prediction window to evaluate on 2022–2024." style={{ color: "var(--muted)", fontSize: "0.78rem", cursor: "help", borderBottom: "1px dashed var(--muted)" }}>N/A †</span>
+                          : <MetricBadge value={m.auc} />}
                       </td>
                       <td style={{ textAlign: "right", padding: "8px 12px" }}>
                         <MetricBadge value={m.f1} />
