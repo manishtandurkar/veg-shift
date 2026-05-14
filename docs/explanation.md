@@ -11,7 +11,7 @@
 
 **The Output:** A formally timestamped event, called a **Crop Viability Loss Event (CVLE)**, such as: *"Delhi: Wheat stopped being viable in 2018 because of extreme water shortage, a delayed monsoon, and insufficient heat accumulation for grain maturation."*
 
-**The Scope:** 10 major Indian cities, 25 years of data (2000–2024), 6 primary crops, analysed through a 17-step automated data pipeline.
+**The Scope:** 10 major Indian cities, 25 years of data (2000–2024), 6 primary crops, analysed through a 21-step automated data pipeline (17 core production steps + 4 comparative research steps).
 
 **The Audience for Results:** Agricultural researchers, policymakers, climate adaptation planners, and farmers themselves — through an interactive dashboard and a React web application.
 
@@ -21,7 +21,7 @@
 
 1. [The Three Datasets](#part-1-the-three-datasets)
 2. [Key Physical and Statistical Concepts](#part-2-key-concepts)
-3. [The 17-Step Processing Pipeline](#part-3-the-17-step-pipeline)
+3. [The 21-Step Processing Pipeline](#part-3-the-21-step-pipeline)
 4. [Data Quality and Special Cases](#part-4-data-quality-and-special-cases)
 5. [Key Output Files](#part-5-key-outputs-explained)
 6. [End-to-End Worked Example: Delhi Wheat](#part-6-from-data-to-insight)
@@ -515,9 +515,9 @@ When ERI ≥ 0.65 (65% of maximum possible stress), an economic alert is trigger
 
 ---
 
-## Part 3: The 17-Step Pipeline
+## Part 3: The 21-Step Pipeline
 
-A **pipeline** is a chain of programs that run one after another. Each step reads input files (from previous steps or raw data), processes them, and writes output files that the next step uses. Running the entire pipeline processes 25 years of data across 10 cities, trains four machine learning models, generates causal analyses, and produces a full interactive dashboard — all automatically.
+A **pipeline** is a chain of programs that run one after another. Each step reads input files (from previous steps or raw data), processes them, and writes output files that the next step uses. Running the entire pipeline processes 25 years of data across 10 cities, trains eight machine learning models, generates causal analyses, and produces a full interactive dashboard — all automatically.
 
 ```
 Raw Data (3 sources)
@@ -550,6 +550,11 @@ Raw Data (3 sources)
   ┌─────▼─────────────────────────────────────────────┐
   │  Phase 6: Visualisation (Step 14)                │
   │  11-panel interactive dashboard                  │
+  └─────┬─────────────────────────────────────────────┘
+        |
+  ┌─────▼─────────────────────────────────────────────┐
+  │  Phase 7: Comparative Research (Steps 20–23)     │
+  │  8-model benchmark; ablation; uncertainty        │
   └───────────────────────────────────────────────────┘
 ```
 
@@ -855,15 +860,14 @@ The attention weights JSON structure:
 #### Step 8: Train Baseline Models
 **Input:** `vegshift_master.csv`
 
-**Output:** `data/output/rf_baseline.pkl`, `lr_baseline.pkl`, `scaler.pkl`, `lstm_baseline.pt`, `baseline_metrics.json`
+**Output:** `models/baselines/` (RF, LR, XGBoost, LightGBM, LSTM weights + scaler), `data/output/baseline_metrics.json`, `data/output/predictions/*_predictions.csv`
 
-Three simpler models are trained as comparison points:
+Five models are trained as comparison points against the TFT. Each saves its per-row prediction probabilities to `data/output/predictions/` so Step 21 can compare them uniformly.
 
 **Random Forest (RF):**
 - Non-temporal: uses the current year's features only, no sequence
 - 200 decision trees, each trained on a random 70% sample of the data
 - Each tree makes a binary prediction; majority vote = final prediction
-- F1 score on held-out test set: reported in `baseline_metrics.json`
 - Primary use: providing SHAP explanations (Step 9) and viability trend scoring (Step 11)
 
 **Logistic Regression (LR):**
@@ -871,10 +875,19 @@ Three simpler models are trained as comparison points:
 - Most interpretable: the coefficient wᵢ for each feature directly shows its direction and magnitude of influence
 - Weakest performer (misses non-linear interactions) but provides a reliability floor
 
+**XGBoost:**
+- Gradient-boosted decision tree ensemble; handles non-linear feature interactions better than plain RF
+- Uses `scale_pos_weight` to compensate for class imbalance (CVLEs are rare events)
+- Trained with 200 trees, max depth 6, learning rate 0.05
+
+**LightGBM:**
+- Gradient boosting variant with leaf-wise tree growth; faster and often more accurate than XGBoost on tabular data
+- Same class-imbalance handling as XGBoost
+- Provides an independent ensemble check: if LightGBM and XGBoost agree on a city's risk, confidence is high
+
 **LSTM (Long Short-Term Memory):**
-- Like TFT, but an older and simpler recurrent architecture
-- Also uses sequential data (5-year lookback)
-- Compared against TFT to quantify whether TFT's additional complexity is justified
+- Older recurrent architecture; uses sequential data (5-year lookback), same as TFT
+- Compared against TFT to quantify whether TFT's attention mechanism adds real value over a standard RNN
 
 If TFT and LSTM achieve similar F1 scores, TFT's extra parameters may be overfitting; if TFT significantly outperforms LSTM, the attention mechanism is genuinely capturing patterns LSTM cannot.
 
@@ -1009,6 +1022,104 @@ A simple pivot table transformation: reshapes the `recharge_efficiency` column i
 ```
 
 A declining value over the time series directly visualises aquifer degradation: each millimetre of monsoon rain is recovering less and less of the water table.
+
+---
+
+### Phase 7: Comparative Research (Steps 20–23)
+
+These four steps constitute VegShift's model benchmarking study. They run after the core pipeline and require that Steps 6–9 have already produced predictions. Their outputs feed the `/compare` page in the web app.
+
+---
+
+#### Step 20: Train Deep Sequence Models (TCN + Transformer)
+**Input:** `vegshift_master.csv`
+
+**Output:** `models/deep_models/` (TCN and Transformer weights, `hparams.json`), `data/output/deep_model_metrics.json`, `data/output/predictions/tcn_predictions.csv`, `data/output/predictions/transformer_predictions.csv`
+
+Two additional deep-learning sequence classifiers are trained to extend the comparison set beyond TFT and LSTM:
+
+**TCN (Temporal Convolutional Network):**
+- Uses dilated causal convolutions to process sequences in parallel (unlike RNNs which process left-to-right)
+- Configurable depth and channel width (default: 4 layers, 64 channels per layer, 50 epochs)
+- Does not have an explicit attention mechanism; learns temporal patterns through receptive field stacking
+
+**Vanilla Transformer:**
+- Self-attention architecture similar to TFT but without the variable selection networks, gating, or static covariate encoders
+- Serves as an ablation of TFT: if the vanilla Transformer performs nearly as well as TFT, the additional complexity in TFT is not justified; if TFT is substantially better, the gating and variable selection are adding real value
+- Architecture: `d_model=64`, 4 attention heads, configurable layers
+
+Architecture hyperparameters are saved to `hparams.json` so Step 23 can reconstruct the models for MC-dropout uncertainty estimation without re-training.
+
+---
+
+#### Step 21: Unified Comparative Evaluation
+**Input:** All prediction CSVs from `data/output/predictions/`, `data/output/tft_predictions.csv`, `data/processed/vegshift_master.csv`
+
+**Output:** `data/output/comparative/metrics_table.json`, `comparative/stats_tests.json`, `comparative/zone_breakdown.json`
+
+This is the central benchmarking step. It computes a uniform set of metrics for all 8 models on the same test split (years ≥ 2022), enabling direct comparison:
+
+| Metric | Definition |
+|---|---|
+| Accuracy | Fraction of correct binary predictions |
+| Precision | Of all predicted CVLEs, fraction that were genuine |
+| Recall | Of all genuine CVLEs, fraction that were detected |
+| F1 | Harmonic mean of precision and recall |
+| AUC | Area under the ROC curve (threshold-independent skill) |
+| Brier | Mean squared error of probability estimates (lower = better calibrated) |
+
+**Pairwise statistical tests (`stats_tests.json`):**
+For every pair of models, a Wilcoxon signed-rank test is run on their per-sample AUC contributions. If p < 0.05, the performance difference is statistically significant. This prevents claiming one model is "better" when the difference could be random chance on a small dataset.
+
+**Köppen zone breakdown (`zone_breakdown.json`):**
+Each model's AUC is computed separately within each Köppen zone (BSh, Cwa, Am, etc.). This reveals whether certain models are zone-specialist or generalist — for example, a model might have high overall AUC but perform poorly in semi-arid (BSh) zones where CVLE risk is highest.
+
+---
+
+#### Step 22: Feature Group Ablation Study
+**Input:** `vegshift_master.csv`
+
+**Output:** `data/output/ablation_results.json`
+
+The ablation study answers: *which feature group contributes most to CVLE predictability?*
+
+**Feature groups (defined in `research_shared.py`):**
+
+| Group | Features Included |
+|---|---|
+| `climate` | `temp_mean`, `temp_max`, `rainfall_annual`, `wind_speed`, `humidity`, `n_dry_months` |
+| `phenology` | `monsoon_onset_doy`, `sowing_window_miss`, `gdd_accumulation`, `gdd_adequate` |
+| `hydrology` | `pre_monsoon_depth_mbgl`, `depletion_rate`, `recharge_efficiency`, `crop_water_deficit`, `dual_deficit` |
+| `static_context` | `gaez_baseline_class`, `koppen_zone_enc` |
+| `all` | All 17 features combined |
+
+For each group, three models are trained and evaluated: RF, XGBoost, and LSTM. AUC is the comparison metric. The output is a nested JSON: `results[group_name][model_name] = AUC`.
+
+**Interpretation:** If removing the `hydrology` group causes the largest AUC drop, groundwater features are the most informative. If `all` AUC ≈ `climate` AUC, the non-climate features add little signal. In practice, the `hydrology` group (particularly `dual_deficit` and `depletion_rate`) tends to be the single most predictive group — validating the dual-deficit design decision.
+
+---
+
+#### Step 23: Uncertainty Quantification
+**Input:** All model weights + `data/processed/vegshift_master.csv` + `data/output/tft_predictions.csv`
+
+**Output:** `data/output/uncertainty_metrics.json`
+
+This step measures how *well-calibrated* each model's probability estimates are — i.e., whether a predicted 70% probability of CVLE actually corresponds to about 70% of events being CVLEs in that bin.
+
+**Metrics computed:**
+
+| Metric | Definition | Interpretation |
+|---|---|---|
+| ECE (Expected Calibration Error) | Weighted mean gap between predicted probabilities and observed frequencies across bins | Lower = better calibrated; 0 = perfect calibration |
+| Brier score | Mean squared error of probability predictions | Lower = better; accounts for both calibration and sharpness |
+| Mean std (MC dropout models) | Average standard deviation across N stochastic forward passes | Measures model uncertainty; very low std = overconfident |
+| Interval width (90%) | 2 × 1.645 × mean_std | Width of the 90% confidence interval in probability units |
+
+**MC Dropout method:** For neural network models (LSTM, TCN, Transformer), the dropout layers are kept active at inference time. Running N=50 stochastic forward passes produces a distribution of predictions. The mean is the probability estimate; the standard deviation quantifies the model's epistemic uncertainty.
+
+**RF tree variance method:** For the Random Forest, each of the 200 trees produces its own probability. The mean and standard deviation across tree predictions serve as point estimate and uncertainty measure respectively.
+
+**TFT:** ECE and Brier score are computed from the saved median quantile predictions. Full quantile interval widths (directly from TFT's 7-quantile output) are available by re-running Step 7 with `--mode quantiles`.
 
 ---
 
@@ -1168,8 +1279,16 @@ Any analysis of Jaipur results should note that groundwater figures carry additi
 | `vegshift-tft-best.ckpt` | Trained TFT model weights | — |
 | `tft_predictions.csv` | 7-quantile CVLE probability forecasts | Delhi 2020: p50=0.72, p90=0.89 |
 | `tft_attention_weights.json` | Which past years drove each TFT prediction | Delhi 2020: lag1=40%, lag2=30% |
-| `rf_baseline.pkl` | Serialised Random Forest model | — |
-| `baseline_metrics.json` | Test-set F1, precision, recall for all 4 models | RF: F1=0.87, LR: F1=0.79, LSTM: F1=0.83 |
+| `models/baselines/` | Serialised RF, LR, XGBoost, LightGBM, LSTM models + scaler | — |
+| `baseline_metrics.json` | Test-set F1, precision, recall, AUC for all 5 baseline models | RF: F1=0.87, LR: F1=0.79, LSTM: F1=0.83 |
+| `models/deep_models/` | Serialised TCN and Transformer models + hparams.json | — |
+| `deep_model_metrics.json` | AUC and F1 for TCN and Transformer | — |
+| `predictions/*_predictions.csv` | Per-row probability outputs for all 7 non-TFT models | Used by Step 21 unified evaluation |
+| `comparative/metrics_table.json` | Full 6-metric benchmark across all 8 models on held-out test set | — |
+| `comparative/stats_tests.json` | Wilcoxon p-values for all pairwise model comparisons | — |
+| `comparative/zone_breakdown.json` | Per-Köppen-zone AUC for each model | — |
+| `ablation_results.json` | AUC per feature group per model (RF, XGBoost, LSTM) | `hydrology` group typically highest |
+| `uncertainty_metrics.json` | ECE, Brier score, MC-dropout interval widths for all models | — |
 | `shap_explanation.json` | Global + per-city feature importance | crop_water_deficit: 35% global weight |
 | `transition_cvle_linkage.json` | Pre/post-transition CVLE risk with statistical test | Delhi 2003: delta=+33%, p=0.032 |
 | `viability_trend_report.json` | 25-year risk slope per city | Delhi: slope=+0.0045/yr, p=0.008, deteriorating |
@@ -1317,12 +1436,13 @@ A single bad year can always occur randomly. Indian agriculture has millennia of
 
 ### Why Use Multiple Machine Learning Models?
 
-The Random Forest, Logistic Regression, LSTM, and TFT each have different assumptions and blindspots:
-- If all four agree that Delhi wheat is at risk, confidence is very high.
-- If only TFT flags it, the pattern may be overfitted to temporal sequences.
+All eight models — Logistic Regression, Random Forest, XGBoost, LightGBM, LSTM, TCN, Transformer, and TFT — have different inductive biases and blindspots:
+- If all eight agree that Delhi wheat is at risk, confidence is very high.
+- If only TFT flags it, the pattern may be overfitted to its attention-based architecture.
 - If only Logistic Regression flags it, it may be a simple linear relationship that more complex models are overcomplicating.
+- If gradient-boosted trees (XGBoost, LightGBM) but not neural models flag a city, the signal likely comes from non-linear feature interactions that are amenable to tree splits but do not form temporal sequences.
 
-Cross-model agreement is as important as any individual model's accuracy.
+The comparative study (Steps 20–23) formally quantifies where the 8 models agree and differ, which pairs are statistically indistinguishable, and which feature groups each model relies on.
 
 ### Why Control Cities?
 
@@ -1343,7 +1463,8 @@ Binary "CVLE: yes/no" is too coarse for policy. A farmer deciding whether to swi
 | Geospatial rasters | Rasterio | Read and extract values from FAO GeoTIFF files |
 | Statistics | SciPy | Wilcoxon test; OLS linear regression; p-value computation |
 | ML models | Scikit-learn (RF, LR) | Fast, interpretable models; SHAP integration |
-| Deep learning | PyTorch + PyTorch Lightning | TFT and LSTM implementations |
+| Gradient boosting | XGBoost, LightGBM | Ensemble baselines; class-imbalance-aware; extend Step 8 comparison set |
+| Deep learning | PyTorch + PyTorch Lightning | TFT, LSTM, TCN, Transformer implementations |
 | Time series ML | PyTorch Forecasting | Specialised TFT library with built-in attention extraction |
 | Explainability | SHAP (TreeExplainer) | Feature importance for Random Forest; mathematically grounded |
 | Dashboard | Plotly + Dash | 11-panel interactive web dashboard |
@@ -1365,7 +1486,7 @@ Binary "CVLE: yes/no" is too coarse for policy. A farmer deciding whether to swi
 python run_vegshift.py
 ```
 
-This runs all 17 steps in sequence and launches the dashboard in the background.
+This runs all 17 core steps in sequence and launches the dashboard in the background. Steps 20–23 (comparative research) must be run separately after the core pipeline completes.
 
 ### Preview What Steps Will Run Without Executing Them
 
@@ -1396,6 +1517,12 @@ python pipeline/step14_dashboard.py
 python pipeline/step15_crop_advisory.py
 python pipeline/step16_irrigation_strategy.py
 python pipeline/step17_exploitation_risk.py
+
+# Research / comparative study steps (run after core pipeline)
+python pipeline/step20_deep_models.py
+python pipeline/step21_unified_eval.py
+python pipeline/step22_ablation.py
+python pipeline/step23_uncertainty.py
 ```
 
 ### Run All Tests
@@ -1431,7 +1558,7 @@ cd web && npm install && npm run dev
 # Runs at http://localhost:5173
 ```
 
-**The 8 pages of the web app:**
+**The 9 pages of the web app:**
 
 | Route | What You See |
 |---|---|
@@ -1443,6 +1570,7 @@ cd web && npm install && npm run dev
 | `/economic` | ERI component stacked bar, MSP vs. distress threshold, procurement links |
 | `/explain` | SHAP feature importance bar chart + TFT attention weight visualisation |
 | `/reports` | Full city report aggregating all outputs in a single scrollable view |
+| `/compare` | 8-model benchmark page: unified metrics table, pairwise statistical significance tests, feature-group ablation chart, uncertainty (ECE / Brier / MC-dropout interval widths), Köppen zone AUC breakdown |
 
 **AI Chatbot (all pages):**
 A persistent chat widget in the bottom-right corner of every page. Uses TF-IDF text similarity to search the knowledge base — built from all Markdown files in `docs/` plus all key JSON output files. Each response includes source attribution badges (e.g., "Source: transition_cvle_linkage.json — Delhi 2003") so users can verify where an answer came from.
@@ -1457,15 +1585,16 @@ All three languages (English, Hindi हिन्दी, Kannada ಕನ್ನಡ)
 
 ## Summary
 
-VegShift is a 17-step automated data pipeline that combines three physical datasets — daily atmospheric climate records, quarterly groundwater depth measurements, and FAO crop suitability maps — to detect when Indian cities' climates have shifted enough to make their primary crops unviable.
+VegShift is a 21-step automated data pipeline that combines three physical datasets — daily atmospheric climate records, quarterly groundwater depth measurements, and FAO crop suitability maps — to detect when Indian cities' climates have shifted enough to make their primary crops unviable.
 
-**The 17 steps in six phases:**
+**The 21 steps in seven phases:**
 1. Standardise and preprocess raw data (Steps 0–4)
 2. Merge into a 250-row master table and compute CVLE labels (Step 5)
-3. Train and compare four machine learning models: TFT, Random Forest, Logistic Regression, LSTM (Steps 6–9)
+3. Train and compare eight machine learning models: TFT, Random Forest, Logistic Regression, XGBoost, LightGBM, LSTM, TCN, Transformer (Steps 6–9, 20)
 4. Analyse causal linkages, long-term viability trends, and validate against control cities (Steps 10–13)
 5. Generate forward-looking advisory outputs: crop recommendations, irrigation prescriptions, exploitation risk alerts (Steps 15–17)
 6. Visualise all outputs in an 11-panel interactive dashboard (Step 14)
+7. Run comparative research: unified 8-model benchmarking, feature ablation, uncertainty quantification (Steps 20–23)
 
 **Five key innovations:**
 
@@ -1519,7 +1648,19 @@ VegShift is a 17-step automated data pipeline that combines three physical datas
 
 - **Random Forest:** A machine learning model built from hundreds of decision trees, each trained on a random data subset. Aggregates their votes for robust, interpretable predictions.
 
+- **XGBoost / LightGBM:** Gradient-boosted tree ensemble algorithms that build trees sequentially, each correcting the errors of the previous one. Handles non-linear feature interactions and class imbalance well. Used as additional baseline models in Step 8.
+
 - **LSTM (Long Short-Term Memory):** A recurrent neural network architecture designed to learn patterns in sequential data. Used as a comparison baseline against TFT.
+
+- **TCN (Temporal Convolutional Network):** A sequence model using dilated causal convolutions instead of recurrence. Processes all time steps in parallel; captures temporal patterns through stacked receptive fields. Trained in Step 20.
+
+- **Vanilla Transformer:** A self-attention sequence model without TFT's variable selection networks or gating layers. Serves as an ablation of TFT to isolate which complexity in TFT is actually valuable. Trained in Step 20.
+
+- **ECE (Expected Calibration Error):** A measure of probability calibration. Bins predictions by confidence level and computes the weighted mean absolute gap between predicted probability and actual outcome frequency. Lower = better calibrated.
+
+- **MC Dropout:** A Bayesian approximation technique: dropout layers are kept active during inference. Running N stochastic forward passes yields a distribution of predictions, whose mean is the point estimate and std is the epistemic uncertainty.
+
+- **Ablation study:** An experiment that removes a subset of inputs (a "feature group") and measures the drop in model performance. Isolates which parts of the input are load-bearing.
 
 - **TF-IDF (Term Frequency–Inverse Document Frequency):** A numerical statistic measuring how relevant a word is to a document within a collection. Used by the chatbot to find the most relevant source document for each user question.
 
