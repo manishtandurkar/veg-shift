@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useCityContext } from "../state/CityContext";
 import RiskMeter from "../components/RiskMeter";
 
@@ -51,7 +51,6 @@ const PIPELINE_STEPS = [
 
 const Landing: React.FC = () => {
   const { cities } = useCityContext();
-  const navigate = useNavigate();
 
   return (
     <section className="page">
@@ -70,7 +69,7 @@ const Landing: React.FC = () => {
         </p>
         <div className="hero-actions">
           <Link className="primary" to="/intake">→ Start farmer intake</Link>
-          <Link className="secondary" to="/city">Explore city data</Link>
+
           <Link className="secondary" to="/explain">View model explainability</Link>
         </div>
       </div>
@@ -100,9 +99,7 @@ const Landing: React.FC = () => {
             <div
               key={city.city}
               className="card city-preview"
-              style={{ "--delay": `${i * 0.04}s` } as React.CSSProperties}
-              onClick={() => navigate("/city")}
-              title={`View ${city.city} detail`}
+              style={{ "--delay": `${i * 0.04}s`, cursor: "default" } as React.CSSProperties}
             >
               <div className="card-header">
                 <h3 style={{ margin: 0, fontSize: "1rem" }}>{city.city}</h3>

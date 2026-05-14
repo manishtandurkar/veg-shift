@@ -24,7 +24,7 @@ const Layout: React.FC = () => {
           <NavLink to="/">Home</NavLink>
           <NavLink to="/intake">Intake</NavLink>
           <NavLink to="/dashboard">Dashboard</NavLink>
-          <NavLink to="/city">City</NavLink>
+
           <NavLink to="/crops">Crops</NavLink>
           <NavLink to="/water">Water</NavLink>
           <NavLink to="/economic">Protection</NavLink>

@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
 import Intake from "./pages/Intake";
 import Dashboard from "./pages/Dashboard";
-import CityOverview from "./pages/CityOverview";
+
 import CropAdvisor from "./pages/CropAdvisor";
 import WaterIrrigation from "./pages/WaterIrrigation";
 import EconomicProtection from "./pages/EconomicProtection";
@@ -18,7 +18,7 @@ const App: React.FC = () => {
         <Route index element={<Landing />} />
         <Route path="intake" element={<Intake />} />
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="city" element={<CityOverview />} />
+
         <Route path="crops" element={<CropAdvisor />} />
         <Route path="water" element={<WaterIrrigation />} />
         <Route path="economic" element={<EconomicProtection />} />
