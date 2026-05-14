@@ -38,7 +38,7 @@ function BreakdownRow({ label, deduction, explanation }: BreakdownRowProps) {
           {isOk ? "✓ 0" : `${deduction.toFixed(1)}`}
         </span>
       </div>
-      <p style={{ fontSize: "0.82rem", margin: 0, color: "var(--fg)", lineHeight: 1.5 }}>{explanation}</p>
+      <p style={{ fontSize: "0.82rem", margin: 0, color: "var(--ink)", lineHeight: 1.5 }}>{explanation}</p>
     </div>
   );
 }
@@ -111,7 +111,7 @@ function BreakdownModal({ crop, climateContext, currentZone, onClose }: ModalPro
     >
       <div
         style={{
-          background: "var(--surface)",
+          background: "#ffffff",
           borderRadius: 14,
           border: "1px solid var(--border)",
           width: "100%",
