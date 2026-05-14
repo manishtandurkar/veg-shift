@@ -2,11 +2,8 @@ import React from "react";
 import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
 import { useFarmerProfile } from "../state/FarmerProfileContext";
-import RiskMeter from "../components/RiskMeter";
 import AdvisoryCard from "../components/AdvisoryCard";
-import ActionSteps from "../components/ActionSteps";
 import EvidenceCard from "../components/EvidenceCard";
-import TrendStrip from "../components/TrendStrip";
 
 const EriGauge: React.FC<{ value: number; alert: boolean }> = ({ value, alert }) => {
   const r = 32;
@@ -34,6 +31,24 @@ const EriGauge: React.FC<{ value: number; alert: boolean }> = ({ value, alert })
   );
 };
 
+// Helper to convert Köppen codes to farmer language
+const getZoneExplanation = (zone: string): string => {
+  const zoneMap: Record<string, string> = {
+    "BSh": "Hot, semi-arid climate (dry but warm)",
+    "BSk": "Cold, semi-arid climate (dry and cool)",
+    "BWh": "Hot desert climate (very dry)",
+    "BWk": "Cold desert climate (very dry and cold)",
+    "Aw": "Tropical savanna (hot with distinct wet/dry seasons)",
+    "Am": "Tropical monsoon (very wet during monsoon)",
+    "Af": "Tropical rainforest (wet year-round)",
+    "Cwa": "Humid subtropical (warm, moderate rain)",
+    "Csa": "Mediterranean (hot, dry summers)",
+    "Cwb": "Oceanic (cool, dry winters)",
+    "Cfb": "Oceanic (cool, wet year-round)",
+  };
+  return zoneMap[zone] || zone;
+};
+
 const Dashboard: React.FC = () => {
   const { selectedCity, cities } = useCityContext();
   const { profile, hasSubmitted } = useFarmerProfile();
@@ -47,8 +62,7 @@ const Dashboard: React.FC = () => {
           <div style={{ fontSize: "3rem", marginBottom: 16 }}>🌾</div>
           <h3>Complete the intake form first</h3>
           <p>
-            The decision dashboard is personalised to your farm profile — city, crop goal, budget,
-            water access, and season. Fill in the intake form to unlock your analysis.
+            The decision dashboard is personalised to your farm profile — city and crop. Fill in the intake form to unlock your analysis.
           </p>
           <a className="primary" href="/intake" style={{ marginTop: 16, display: "inline-block" }}>
             → Start intake
@@ -65,24 +79,81 @@ const Dashboard: React.FC = () => {
           <h1>Decision Dashboard</h1>
           <p>Personalised guidance based on your farm profile and current climate risk in {selectedCity}.</p>
         </div>
-        {summary && <RiskMeter level={summary.risk_level} />}
       </div>
+
+      {/* Crop Viability Assessment */}
+      {detail && profile.desiredCrop && (
+        <div className="card" style={{ borderLeft: "4px solid var(--primary)", paddingLeft: "20px" }}>
+          <div className="card-header">
+            <h3>Your Crop: {profile.desiredCrop}</h3>
+          </div>
+          {(() => {
+            const cropMatch = detail.advisory.ranked_crops.find(
+              (c: any) => c.crop.toLowerCase() === profile.desiredCrop.toLowerCase()
+            );
+            const rank = cropMatch ? detail.advisory.ranked_crops.indexOf(cropMatch) + 1 : null;
+            const isRecommended = cropMatch && rank <= 3;
+
+            return (
+              <div style={{ display: "grid", gap: "16px" }}>
+                <div>
+                  <div style={{ fontSize: "0.9rem", color: "#666", marginBottom: "8px" }}>VIABILITY IN NEXT 5 YEARS</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 600, color: isRecommended ? "#22c55e" : "#ef4444" }}>
+                    {isRecommended ? "✓ VIABLE" : "⚠ AT RISK"}
+                  </div>
+                </div>
+
+                {isRecommended && (
+                  <p style={{ margin: 0, padding: "12px 0", borderTop: "1px solid #eee", color: "#555" }}>
+                    Good news! <strong>{profile.desiredCrop}</strong> is ranked <strong>#{rank}</strong> among recommended crops for {selectedCity}.
+                    It's well-suited to current climate conditions.
+                  </p>
+                )}
+
+                {!isRecommended && (
+                  <p style={{ margin: 0, padding: "12px 0", borderTop: "1px solid #eee", color: "#d32f2f" }}>
+                    <strong>{profile.desiredCrop}</strong> is showing viability challenges in {selectedCity} over the next 5 years.
+                    Consider switching to recommended alternatives below.
+                  </p>
+                )}
+
+                {detail.advisory.ranked_crops.length > 0 && (
+                  <div style={{ paddingTop: "12px", borderTop: "1px solid #eee" }}>
+                    <div style={{ fontSize: "0.9rem", color: "#666", marginBottom: "8px" }}>SUGGESTED ALTERNATIVES</div>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {detail.advisory.ranked_crops.slice(0, 3).map((crop: any, idx: number) => (
+                        <span
+                          key={idx}
+                          style={{
+                            padding: "8px 12px",
+                            backgroundColor: "#f0f0f0",
+                            borderRadius: "4px",
+                            fontSize: "0.9rem",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {crop.crop} ({crop.score})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Farm profile summary */}
       <div className="card">
         <div className="card-header">
-          <h3>Your farm profile</h3>
+          <h3>Your Profile</h3>
           <span className="tag">{selectedCity}</span>
         </div>
         <div className="input-summary">
           {[
-            { label: "City", value: selectedCity },
-            { label: "Desired crop", value: profile.desiredCrop || "—" },
-            { label: "Budget", value: profile.budgetINR ? `₹${profile.budgetINR}` : "—" },
-            { label: "Land size", value: profile.landSizeHa ? `${profile.landSizeHa} ha` : "—" },
-            { label: "Water access", value: profile.waterAccess || "—" },
-            { label: "Irrigation", value: profile.irrigationType || "—" },
-            { label: "Season", value: profile.season || "—" },
+            { label: "Location", value: selectedCity },
+            { label: "Current Crop", value: profile.desiredCrop || "—" },
           ].map((item) => (
             <div key={item.label} className="input-summary-item">
               <div className="label">{item.label}</div>
@@ -101,40 +172,41 @@ const Dashboard: React.FC = () => {
 
       {detail && (
         <>
-          {/* Key metrics row */}
-          <div className="card-grid">
-            <div className="card metric-card">
-              <div className="metric-label">Climate Zone</div>
-              <div className="metric-value" style={{ fontSize: "1.3rem" }}>{detail.advisory.current_zone}</div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Köppen-Geiger classification</p>
-            </div>
-            <div className="card metric-card">
-              <div className="metric-label">CVLE Events (5 yr)</div>
-              <div className={`metric-value ${(summary?.recent_cvle_count ?? 0) >= 2 ? "metric-delta negative" : "metric-delta positive"}`}>
-                {summary?.recent_cvle_count ?? "—"}
-              </div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Crop viability loss events</p>
-            </div>
-            <div className="card metric-card">
-              <div className="metric-label">Trend Slope</div>
-              <div className={`metric-value ${(detail.trend?.trend === "deteriorating") ? "metric-delta negative" : (detail.trend?.trend === "improving") ? "metric-delta positive" : ""}`}>
-                {(detail.trend?.slope ?? 0).toFixed(4)}
-              </div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>Per year · R² = {(detail.trend?.r_squared ?? 0).toFixed(3)}</p>
-            </div>
-            <div className="card metric-card">
-              <div className="metric-label">Transitions detected</div>
-              <div className="metric-value">{detail.transitions.length}</div>
-              <p style={{ fontSize: "0.8rem", margin: 0 }}>
-                {detail.transitions[0]
-                  ? `Latest: ${detail.transitions[0].from_zone} → ${detail.transitions[0].to_zone}`
-                  : "No zone transitions found"}
+          {/* Climate Outlook - Transitions in plain language */}
+          <div className="card" style={{ borderLeft: "4px solid #ff9800", paddingLeft: "20px" }}>
+            <h3>🌍 Climate Outlook for {selectedCity}</h3>
+            <div style={{ fontSize: "0.95rem", lineHeight: "1.6", color: "#555" }}>
+              <p style={{ margin: "0 0 12px 0" }}>
+                <strong>Your region's climate type:</strong> {getZoneExplanation(detail.advisory.current_zone)}
+              </p>
+              <p style={{ margin: 0, padding: "12px", backgroundColor: "#fff3e0", borderRadius: "4px" }}>
+                📌 Our analysis shows your region has experienced climate shifts in the past. These changes affect which crops can grow well. 
+                Your water patterns and growing season may be changing, which is why some crops that worked before may not work now.
               </p>
             </div>
           </div>
 
-          {/* Trend */}
-          {detail.trend && <TrendStrip slope={detail.trend.slope} trend={detail.trend.trend} />}
+          {/* 5-Year Risk Assessment */}
+          <div className="card" style={{ borderLeft: "4px solid #f44336", paddingLeft: "20px" }}>
+            <h3>⚠️ 5-Year Crop Viability Risk</h3>
+            <div style={{ fontSize: "0.95rem", lineHeight: "1.6", color: "#555" }}>
+              {detail.summary?.recent_cvle_count > 0 ? (
+                <p style={{ margin: "0 0 12px 0", padding: "12px", backgroundColor: "#ffebee", borderRadius: "4px", borderLeft: "3px solid #f44336" }}>
+                  <strong style={{ color: "#d32f2f" }}>Alert:</strong> There have been {detail.summary?.recent_cvle_count} years in the past when this region 
+                  experienced severe stress for crops — not enough rain at planting time AND wells running very low. This pattern may repeat.
+                </p>
+              ) : (
+                <p style={{ margin: "0 0 12px 0", padding: "12px", backgroundColor: "#e8f5e9", borderRadius: "4px", borderLeft: "3px solid #4caf50" }}>
+                  <strong style={{ color: "#2e7d32" }}>Stable:</strong> Recent years show manageable conditions for most crops. Continue monitoring rainfall and well levels.
+                </p>
+              )}
+              <p style={{ margin: 0 }}>
+                ✓ Choose crops ranked in top 3 to reduce risk | 
+                ✓ Use drip irrigation to save water | 
+                ✓ Track your well depth month-to-month
+              </p>
+            </div>
+          </div>
 
           {/* Crop recommendations */}
           <div className="section">
@@ -151,48 +223,84 @@ const Dashboard: React.FC = () => {
 
           {/* Irrigation + Economic in 2 cols */}
           <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
-            <ActionSteps
-              irrigationMethod={detail.irrigation.irrigation_method}
-              sowingWindow={detail.irrigation.optimal_sow_window}
-              avoidCrops={detail.irrigation.avoid_crops}
-              recommendedCrops={detail.irrigation.recommended_crops}
-            />
-
-            {/* Economic protection card */}
+            {/* Action Steps - Simplified */}
             <div className="card">
               <div className="card-header">
-                <h3>Economic protection</h3>
-                <span className={`tag ${detail.eri.alert ? "risk-high" : "risk-low"}`}>
-                  {detail.eri.alert ? "⚠ Alert" : "✓ Stable"}
-                </span>
+                <h3>📋 What To Do Now</h3>
               </div>
-              <div className="eri-row">
-                <EriGauge value={detail.eri.eri} alert={detail.eri.alert} />
-                <div>
-                  <div className="metric-label">Exploitation Risk Index</div>
-                  <div style={{ fontWeight: 700, fontSize: "1.1rem", marginTop: 4 }}>
-                    {(detail.eri.eri * 100).toFixed(1)}%
-                  </div>
-                  {detail.eri.alert && (
-                    <p style={{ fontSize: "0.8rem", color: "var(--risk-high)", marginTop: 8 }}>
-                      High exploitation risk detected
-                    </p>
-                  )}
+              <div style={{ display: "grid", gap: "12px", fontSize: "0.95rem" }}>
+                <div style={{ padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
+                  <strong>Water Method:</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem", color: "#666" }}>
+                    {detail.irrigation.irrigation_method === "drip_only" 
+                      ? "🚰 Use ONLY drip irrigation (saves 40% water vs flood)" 
+                      : detail.irrigation.irrigation_method === "drip_or_sprinkler_with_rwh"
+                      ? "💧 Use drip or sprinkler + collect rainwater"
+                      : "🌧️ Sprinkler system recommended"}
+                  </p>
+                </div>
+
+                <div style={{ padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
+                  <strong>Best Planting Time:</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem", color: "#666" }}>
+                    {detail.irrigation.optimal_sow_window}
+                  </p>
+                </div>
+
+                <div style={{ padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
+                  <strong>Avoid:</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem", color: "#d32f2f" }}>
+                    {detail.irrigation.avoid_crops && detail.irrigation.avoid_crops.length > 0
+                      ? detail.irrigation.avoid_crops.join(", ") + " (too water-thirsty)"
+                      : "No restrictions now"}
+                  </p>
+                </div>
+
+                <div style={{ padding: "10px", backgroundColor: "#e8f5e9", borderRadius: "4px" }}>
+                  <strong style={{ color: "#2e7d32" }}>Priority:</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem", color: "#2e7d32" }}>
+                    {detail.irrigation.recommended_crops && detail.irrigation.recommended_crops.length > 0
+                      ? detail.irrigation.recommended_crops.slice(0, 3).join(", ")
+                      : "Cotton, Sorghum, Groundnut"}
+                  </p>
                 </div>
               </div>
-              <div className="divider" style={{ margin: "14px 0" }} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <div className="metric-label" style={{ marginBottom: 4 }}>MSP</div>
-                  <div style={{ fontWeight: 600 }}>
-                    {detail.eri.msp_inr_per_quintal ? `₹${detail.eri.msp_inr_per_quintal}/qtl` : "N/A"}
-                  </div>
+            </div>
+
+            {/* Economic protection - Simplified */}
+            <div className="card">
+              <div className="card-header">
+                <h3>💰 Protect Your Income</h3>
+              </div>
+              <div style={{ display: "grid", gap: "12px", fontSize: "0.95rem" }}>
+                <div style={{ padding: "10px", backgroundColor: "#e3f2fd", borderRadius: "4px" }}>
+                  <strong>Fair Price (MSP):</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "1.1rem", color: "#1976d2", fontWeight: 600 }}>
+                    ₹{detail.eri.msp_inr_per_quintal || "N/A"} per quintal
+                  </p>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#666" }}>
+                    Minimum guaranteed price from government
+                  </p>
                 </div>
-                <div>
-                  <div className="metric-label" style={{ marginBottom: 4 }}>Distress floor</div>
-                  <div style={{ fontWeight: 600 }}>
-                    {detail.eri.distress_price_threshold ? `₹${detail.eri.distress_price_threshold}` : "N/A"}
-                  </div>
+
+                <div style={{ padding: "10px", backgroundColor: "#fff3e0", borderRadius: "4px" }}>
+                  <strong>Danger Zone:</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "1rem", color: "#f57c00", fontWeight: 600 }}>
+                    Don't accept less than ₹{detail.eri.distress_price_threshold}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#666" }}>
+                    Below this, middlemen are taking unfair profit. Report to APMC.
+                  </p>
+                </div>
+
+                <div style={{ padding: "10px", backgroundColor: "#f3e5f5", borderRadius: "4px" }}>
+                  <strong>Risk Level:</strong>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem" }}>
+                    {detail.eri.alert ? "⚠️ ALERT - High risk" : "✓ Stable - Low risk"}
+                  </p>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "#666" }}>
+                    Get crop insurance (PMFBY) before planting
+                  </p>
                 </div>
               </div>
             </div>

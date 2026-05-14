@@ -28,22 +28,23 @@ const Intake: React.FC = () => {
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>{t(lang, 'intake.title')}</h1>
-          <p>{t(lang, 'intake.desc')}</p>
+          <h1>Quick Crop Viability Check</h1>
+          <p>Tell us your location and current crop. We'll predict if it will remain viable in the next 5 years and suggest alternatives.</p>
         </div>
       </div>
 
       <form className="card intake-form" onSubmit={handleSubmit}>
         {error && <p className="error">{error}</p>}
-        <div className="form-grid">
+        <div className="form-grid" style={{ maxWidth: "500px" }}>
           <label>
-            {t(lang, 'nav.city')}
+            <div style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "8px" }}>📍 Your Location</div>
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
               disabled={loading || cities.length === 0}
+              style={{ fontSize: "1rem", padding: "10px" }}
             >
-              {cities.length === 0 && <option value="">{t(lang, 'loading')}</option>}
+              <option value="">Select your city...</option>
               {cities.map((city) => (
                 <option key={city.city} value={city.city}>
                   {city.city}
@@ -51,62 +52,28 @@ const Intake: React.FC = () => {
               ))}
             </select>
           </label>
-          <label>
-            {t(lang, "intake.crop")}
+
+          <label style={{ marginTop: "24px" }}>
+            <div style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: "8px" }}>🌾 Crop You're Growing</div>
             <input
-              placeholder={t(lang, "intake.crop.placeholder")}
+              placeholder="e.g., Rice, Wheat, Cotton, Sugarcane..."
               value={local.desiredCrop}
               onChange={(e) => update("desiredCrop", e.target.value)}
+              style={{ fontSize: "1rem", padding: "10px" }}
             />
-          </label>
-          <label>
-            {t(lang, "intake.budget")}
-            <input
-              placeholder={t(lang, "intake.budget.placeholder")}
-              value={local.budgetINR}
-              onChange={(e) => update("budgetINR", e.target.value)}
-            />
-          </label>
-          <label>
-            {t(lang, "intake.land")}
-            <input
-              placeholder={t(lang, "intake.land.placeholder")}
-              value={local.landSizeHa}
-              onChange={(e) => update("landSizeHa", e.target.value)}
-            />
-          </label>
-          <label>
-            {t(lang, "intake.water")}
-            <select value={local.waterAccess} onChange={(e) => update("waterAccess", e.target.value)}>
-              <option value="">{t(lang, "intake.select")}</option>
-              <option value="rainfed">{t(lang, "intake.rainfed")}</option>
-              <option value="groundwater">{t(lang, "intake.groundwater")}</option>
-              <option value="canal">{t(lang, "intake.canal")}</option>
-              <option value="mixed">{t(lang, "intake.mixed")}</option>
-            </select>
-          </label>
-          <label>
-            {t(lang, "intake.irrigation")}
-            <select value={local.irrigationType} onChange={(e) => update("irrigationType", e.target.value)}>
-              <option value="">{t(lang, "intake.select")}</option>
-              <option value="drip">{t(lang, "intake.drip")}</option>
-              <option value="sprinkler">{t(lang, "intake.sprinkler")}</option>
-              <option value="flood">{t(lang, "intake.flood")}</option>
-              <option value="none">{t(lang, "intake.none")}</option>
-            </select>
-          </label>
-          <label>
-            {t(lang, "intake.season")}
-            <select value={local.season} onChange={(e) => update("season", e.target.value)}>
-              <option value="">{t(lang, "intake.select")}</option>
-              <option value="kharif">{t(lang, "season.kharif")}</option>
-              <option value="rabi">{t(lang, "season.rabi")}</option>
-              <option value="annual">{t(lang, "season.annual")}</option>
-            </select>
           </label>
         </div>
-        <button type="submit" className="primary" disabled={loading || !selectedCity}>
-          {loading ? t(lang, 'loading') : t(lang, 'dashboard.title')}
+
+        <div style={{ marginTop: "32px", padding: "16px", backgroundColor: "#f0f8ff", borderRadius: "8px", color: "#555" }}>
+          <p style={{ margin: 0, fontSize: "0.95rem" }}>
+            ✓ We'll predict if your crop will remain viable in the next 5 years<br/>
+            ✓ Suggest alternative crops better suited for your location<br/>
+            ✓ Provide water management strategies
+          </p>
+        </div>
+
+        <button type="submit" className="primary" disabled={loading || !selectedCity || !local.desiredCrop} style={{ marginTop: "24px", width: "100%", padding: "12px", fontSize: "1rem" }}>
+          {loading ? t(lang, 'loading') : "Get My Prediction"}
         </button>
       </form>
     </section>

@@ -2,11 +2,6 @@ import React, { createContext, useContext, useMemo, useState } from "react";
 
 export type FarmerProfile = {
   desiredCrop: string;
-  budgetINR: string;
-  landSizeHa: string;
-  waterAccess: string;
-  irrigationType: string;
-  season: string;
 };
 
 interface FarmerProfileState {
@@ -18,11 +13,6 @@ interface FarmerProfileState {
 
 const defaultProfile: FarmerProfile = {
   desiredCrop: "",
-  budgetINR: "",
-  landSizeHa: "",
-  waterAccess: "",
-  irrigationType: "",
-  season: "",
 };
 
 const FarmerProfileContext = createContext<FarmerProfileState | undefined>(undefined);
