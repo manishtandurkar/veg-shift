@@ -157,8 +157,7 @@ function BreakdownModal({ crop, climateContext, currentZone, onClose }: ModalPro
             {t(lang, "advisory.viability")}
           </span>
           <strong style={{ fontSize: "1.6rem", color: scoreColor, fontWeight: 800 }}>
-            {crop.score.toFixed(0)}
-            <span style={{ fontSize: "1rem", fontWeight: 500 }}>/100</span>
+            {scorePct >= 0.65 ? t(lang, "viability.high") : scorePct >= 0.4 ? t(lang, "viability.medium") : t(lang, "viability.low")}
           </strong>
         </div>
 
@@ -250,7 +249,9 @@ const AdvisoryCard: React.FC<AdvisoryCardProps> = ({ crop, rank, climateContext,
         <div className="score-bar-row">
           <div className="score-bar-label">
             <span>{t(lang, "advisory.viability")}</span>
-            <strong style={{ color: scoreColor }}>{(scorePct * 100).toFixed(0)}%</strong>
+            <strong style={{ color: scoreColor }}>
+              {scorePct >= 0.65 ? t(lang, "viability.high") : scorePct >= 0.4 ? t(lang, "viability.medium") : t(lang, "viability.low")}
+            </strong>
           </div>
           <div className="score-bar-track">
             <div
