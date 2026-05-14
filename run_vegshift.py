@@ -27,6 +27,10 @@ STEPS = [
     ("Step 15 — Crop Advisory",                "pipeline/step15_crop_advisory.py"),
     ("Step 16 — Irrigation Strategy",          "pipeline/step16_irrigation_strategy.py"),
     ("Step 17 — Exploitation Risk",            "pipeline/step17_exploitation_risk.py"),
+    ("Step 20 — Deep Sequence Models",         "pipeline/step20_deep_models.py"),
+    ("Step 21 — Unified Comparative Eval",     "pipeline/step21_unified_eval.py"),
+    ("Step 22 — Feature Ablation Study",       "pipeline/step22_ablation.py"),
+    ("Step 23 — Uncertainty Quantification",   "pipeline/step23_uncertainty.py"),
 ]
 
 DASHBOARD = ("Step 14 — Dashboard", "pipeline/step14_dashboard.py")
