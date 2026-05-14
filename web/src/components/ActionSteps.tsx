@@ -4,6 +4,7 @@ import type { CoachLanguage, CoachResponse } from "../api/types";
 import { useCityContext } from "../state/CityContext";
 import { useFarmerProfile } from "../state/FarmerProfileContext";
 import { useLanguage } from "../state/LanguageContext";
+import { capitalizeWords } from "../utils/text";
 
 interface ActionStepsProps {
   irrigationMethod: string;
@@ -106,7 +107,7 @@ const TEXT = {
 } as const;
 
 function formatList(items: string[]): string {
-  return items.length ? items.join(", ") : "None";
+  return items.length ? items.map(capitalizeWords).join(", ") : "None";
 }
 
 function methodLabel(method: string, lang: CoachLanguage): string {

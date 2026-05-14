@@ -3,7 +3,7 @@ import type { RiskLevel } from "../api/types";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
 
-const RiskMeter: React.FC<{ level: RiskLevel }> = ({ level }) => {
+const RiskMeter: React.FC<{ level: RiskLevel; showText?: boolean }> = ({ level, showText = true }) => {
   const { lang } = useLanguage();
   const labels: Record<RiskLevel, string> = {
     low: t(lang, 'risk.low'),
@@ -14,10 +14,12 @@ const RiskMeter: React.FC<{ level: RiskLevel }> = ({ level }) => {
   return (
     <div className={`risk-meter risk-${level}`}>
       <div className="risk-bar" />
-      <div className="risk-text">
-        <span>{t(lang, 'risk.level')}</span>
-        <strong>{labels[level]}</strong>
-      </div>
+      {showText ? (
+        <div className="risk-text">
+          <span>{t(lang, 'risk.level')}</span>
+          <strong>{labels[level]}</strong>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -20,19 +20,20 @@ const Layout: React.FC = () => {
               VegShift<sup>AI</sup>
             </span>
           </NavLink>
-          <span className="brand-tag">{t(lang, 'landing.desc')}</span>
+          <span className="brand-tag">{t(lang, 'brand.tagline')}</span>
         </div>
 
         <nav className="nav">
           <NavLink to="/">{t(lang, 'nav.home')}</NavLink>
-          <NavLink to="/intake">{t(lang, 'nav.intake')}</NavLink>
           <NavLink to="/dashboard">{t(lang, 'nav.dashboard')}</NavLink>
           <NavLink to="/crops">{t(lang, 'nav.crops')}</NavLink>
           <NavLink to="/water">{t(lang, 'nav.water')}</NavLink>
           <NavLink to="/economic">{t(lang, 'nav.economic')}</NavLink>
           <NavLink to="/explain">{t(lang, 'nav.explain')}</NavLink>
           <NavLink to="/compare">{t(lang, 'nav.compare')}</NavLink>
+          <NavLink to="/techstack">{t(lang, 'nav.techstack')}</NavLink>
           <NavLink to="/reports">{t(lang, 'nav.reports')}</NavLink>
+          <NavLink to="/research">{t(lang, 'nav.research')}</NavLink>
         </nav>
 
         <div className="header-actions">
@@ -56,20 +57,6 @@ const Layout: React.FC = () => {
       <main className="app-main">
         <Outlet />
       </main>
-
-      <footer className="app-footer">
-        <div className="footer-sdg">
-          <span className="sdg-badge">SDG 13</span>
-          <span>Climate Action - Zero Hunger - Clean Water</span>
-        </div>
-        <div className="footer-tech">
-          <span>TFT · TCN · Transformer</span>
-          <span>XGBoost · LightGBM · RF</span>
-          <span>SHAP · MC Dropout</span>
-          <span>FastAPI · React 18</span>
-          <span>Köppen-Geiger · FAO GAEZ · CGWB</span>
-        </div>
-      </footer>
 
       <GlossaryModal open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
       <Chatbot />

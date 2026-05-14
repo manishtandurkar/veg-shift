@@ -3,6 +3,7 @@ import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
+import { capitalizeWords } from "../utils/text";
 
 const Reports: React.FC = () => {
   const { selectedCity, cities } = useCityContext();
@@ -41,7 +42,7 @@ const Reports: React.FC = () => {
       risk_level: c.risk_level,
       zone: c.current_zone,
       cvle_5yr: c.recent_cvle_count,
-      top_crop: c.top_crops[0]?.crop ?? "—",
+      top_crop: c.top_crops[0]?.crop ? capitalizeWords(c.top_crops[0]?.crop) : "—",
     }));
     const header = "City,Risk Level,Köppen Zone,CVLE (5yr),Top Crop\n";
     const csv = header + rows.map((r) => Object.values(r).join(",")).join("\n");

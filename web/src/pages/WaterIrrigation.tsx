@@ -5,6 +5,7 @@ import ActionSteps from "../components/ActionSteps";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
 import type { Lang } from "../i18n";
+import { capitalizeWords } from "../utils/text";
 
 const RSI_INFO: Record<string, { color: string; descKey: string }> = {
   low:    { color: "var(--risk-low)",    descKey: "water.rsi.low" },
@@ -120,7 +121,7 @@ const WaterIrrigation: React.FC = () => {
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {detail.irrigation.recommended_crops.map((c: string) => (
-                        <span key={c} className="tag risk-low" style={{ fontSize: "0.8rem" }}>✓ {c}</span>
+                        <span key={c} className="tag risk-low" style={{ fontSize: "0.8rem" }}>✓ {capitalizeWords(c)}</span>
                       ))}
                     </div>
                   </div>
@@ -132,7 +133,7 @@ const WaterIrrigation: React.FC = () => {
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {detail.irrigation.avoid_crops.map((c: string) => (
-                        <span key={c} className="tag risk-high" style={{ fontSize: "0.8rem" }}>✗ {c}</span>
+                        <span key={c} className="tag risk-high" style={{ fontSize: "0.8rem" }}>✗ {capitalizeWords(c)}</span>
                       ))}
                     </div>
                   </div>
