@@ -16,6 +16,7 @@ const EN: TMap = {
   'nav.water': 'Water',
   'nav.economic': 'Protection',
   'nav.explain': 'Explainability',
+  'nav.compare': 'Model Comparison',
   'nav.reports': 'Reports',
 
   'landing.title': 'Which crops are safe after the climate shifts?',
@@ -298,6 +299,7 @@ const HI: TMap = {
   'nav.water': 'पानी',
   'nav.economic': 'सुरक्षा',
   'nav.explain': 'व्याख्या',
+  'nav.compare': 'मॉडल तुलना',
   'nav.reports': 'रिपोर्ट्स',
   'landing.title': 'जलवायु बदलने के बाद कौन सी फसलें सुरक्षित हैं?',
   'landing.desc': 'VegShift 25 वर्षों के जलवायु, भूजल और फसल-उपयुक्तता डेटा को जोड़कर बताता है कि पारंपरिक फसलें कब अनुपयोगी होती हैं और आगे क्या उगाना चाहिए।',
@@ -519,6 +521,7 @@ const KN: TMap = {
   'nav.water': 'ನೀರು',
   'nav.economic': 'ರಕ್ಷಣೆ',
   'nav.explain': 'ವಿವರಣೆ',
+  'nav.compare': 'ಮಾದರಿ ಹೋಲಿಕೆ',
   'nav.reports': 'ವರದಿಗಳು',
   'landing.title': 'ಹವಾಮಾನ ಬದಲಾದ ನಂತರ ಯಾವ ಬೆಳೆಗಳು ಸುರಕ್ಷಿತ?',
   'landing.desc': 'VegShift 25 ವರ್ಷಗಳ ಹವಾಮಾನ, ಭೂಜಲ ಮತ್ತು ಬೆಳೆ ಸೂಕ್ತತಾ ಡೇಟಾವನ್ನು ಸೇರಿಸಿ ಪರಂಪರೆಯ ಬೆಳೆಗಳು ಯಾವಾಗ ಅನುಕೂಲಕರವಾಗುವುದಿಲ್ಲ ಎಂದು ತಿಳಿಸಿ ಮುಂದೇನು ಬೆಳೆಬೇಕು ಎಂದು ಶಿಫಾರಸು ಮಾಡುತ್ತದೆ.',

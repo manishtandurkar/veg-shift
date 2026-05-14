@@ -9,9 +9,11 @@ It fuses three independent datasets (atmospheric climate, groundwater levels, cr
 **Cities:** Delhi, Mumbai, Chennai, Kolkata, Bangalore, Hyderabad, Ahmedabad, Jaipur, Lucknow, Pune  
 **Time range:** 2000–2024 (25 years, 250 city-year rows)  
 **Primary model:** Temporal Fusion Transformer (5-year lookback, quantile output)  
-**Baselines:** Random Forest, Logistic Regression, LSTM  
-**Explainability:** SHAP (TreeExplainer), TFT attention weights  
-**Dashboard:** 11-panel interactive Dash/Plotly app at `localhost:8050`
+**Model roster (comparative study):** Logistic Regression, Random Forest, XGBoost, LightGBM, LSTM, TCN, Vanilla Transformer, TFT  
+**Explainability:** SHAP (TreeExplainer on RF/XGB/LGB), cross-model comparison, TFT attention weights  
+**Uncertainty:** MC dropout (neural models), tree variance (RF), Expected Calibration Error  
+**Dashboard:** 11-panel interactive Dash/Plotly app at `localhost:8050`  
+**Research web app:** FastAPI + React with dedicated Model Comparison page
 
 See [AGENTS.md](AGENTS.md) for full pipeline design and dataset specifications.  
 See [docs/explanation.md](docs/explanation.md) for a beginner-friendly walkthrough of every concept and step.
@@ -46,12 +48,14 @@ Key dependencies:
 |---|---|
 | pandas, numpy, scipy | Data processing and statistics |
 | scikit-learn, joblib | Random Forest, Logistic Regression, StandardScaler |
-| torch, pytorch-lightning | TFT and LSTM deep learning models |
+| xgboost | XGBoost classifier |
+| lightgbm | LightGBM classifier |
+| torch, pytorch-lightning | TFT, LSTM, TCN, Transformer deep learning |
 | pytorch-forecasting | Temporal Fusion Transformer implementation |
 | rasterio | Read FAO GAEZ GeoTIFF crop suitability rasters |
-| shap | SHAP TreeExplainer for Random Forest |
+| shap | SHAP TreeExplainer for tree models (RF/XGB/LGB) |
 | plotly, dash | Interactive 8-panel dashboard |
-| pytest | 29 automated tests |
+| pytest | Automated tests |
 
 ---
 
@@ -99,14 +103,20 @@ python pipeline/step5_join_and_features.py     # Three-way join + dual-deficit +
 # Phase 3: Machine learning (Steps 6-9)
 python pipeline/step6_tft_train.py             # Train TFT (5-yr lookback, quantile output)
 python pipeline/step7_tft_predict.py           # TFT predictions + attention weight extraction
-python pipeline/step8_baselines.py             # Train RF + LR + LSTM baseline models
-python pipeline/step9_shap_explainability.py   # SHAP TreeExplainer on Random Forest
+python pipeline/step8_baselines.py             # Train RF, LR, XGBoost, LightGBM, LSTM
+python pipeline/step9_shap_explainability.py   # SHAP TreeExplainer on RF, XGBoost, LightGBM
 
 # Phase 4: Analysis and validation (Steps 10-13)
 python pipeline/step10_causal_linkage.py       # Wilcoxon test: pre vs post transition CVLE risk
 python pipeline/step11_trend_regression.py     # Linear slope of CVLE risk per city, 2000-2024
 python pipeline/step12_control_validation.py   # Validate control cities (Pune, Kolkata, Mumbai)
 python pipeline/step13_recharge_grid.py        # Export recharge grid JSON for dashboard
+
+# Phase 7: Comparative research study (Steps 20-23)
+python pipeline/step20_deep_models.py          # Train TCN + Vanilla Transformer
+python pipeline/step21_unified_eval.py         # Unified metrics table, Wilcoxon tests, zone breakdown
+python pipeline/step22_ablation.py             # Feature group ablation (climate/phenology/hydrology/static)
+python pipeline/step23_uncertainty.py          # MC dropout + tree variance + ECE comparison
 
 # Phase 5: Advisory Engines (Steps 15-17)
 python pipeline/step15_crop_advisory.py        # Rank 14 Indian crops per city with trajectory penalty
@@ -151,6 +161,12 @@ uvicorn api.app:app --reload --port 8000
 | GET | `/risk/{city}` | Risk level and ERI for a city |
 | GET | `/evidence/{city}` | Evidence citations for a city |
 | POST | `/chat` | AI chatbot — body: `{message, history}` |
+| GET | `/comparative/metrics` | Unified metrics table (all 8 models) |
+| GET | `/comparative/stats` | Pairwise Wilcoxon test results |
+| GET | `/comparative/zones` | Per-Koppen-zone AUC breakdown |
+| GET | `/comparative/ablation` | Feature group ablation AUC results |
+| GET | `/comparative/uncertainty` | ECE, Brier, MC dropout interval widths |
+| GET | `/comparative/shap` | Cross-model SHAP feature importance |
 
 ### 3) Start the frontend
 
@@ -178,6 +194,7 @@ set VITE_API_BASE_URL=http://localhost:8000
 | `/water` | Water & Irrigation | RSI level, irrigation method, recharge trend, government schemes |
 | `/economic` | Economic Protection | ERI components, MSP alert, distress threshold, procurement links |
 | `/explain` | Explainability | SHAP feature importance and TFT attention weights |
+| `/compare` | Model Comparison | Comparative study: metrics table, ablation, uncertainty, zone breakdown, statistical tests |
 | `/reports` | Reports | Full city report with all outputs in one view |
 
 ### Chatbot
@@ -241,7 +258,18 @@ pytest tests/
 | `tft_attention_weights.json` | TFT temporal attention weights (which past years mattered per prediction) |
 | `tft_predictions.csv` | TFT quantile predictions (10th–90th percentile) for all city-years |
 | `groundwater_recharge_grid.json` | Recharge efficiency grid: city → year → value |
-| `baseline_metrics.json` | RF / LR / LSTM test-set F1, accuracy, ROC-AUC |
+| `baseline_metrics.json` | RF / LR / XGBoost / LightGBM / LSTM test-set F1, accuracy, ROC-AUC |
+| `deep_model_metrics.json` | TCN / Transformer test-set metrics |
+| `predictions/{model}_predictions.csv` | Per-model predictions (city, year, prob, pred) for all 7 baselines |
+| `comparative/metrics_table.json` | Unified metrics table across all 8 models |
+| `comparative/stats_tests.json` | Pairwise Wilcoxon signed-rank test results |
+| `comparative/zone_breakdown.json` | Per-Koppen-zone AUC for each model |
+| `ablation_results.json` | Feature group ablation AUC (5 groups × 3 models) |
+| `uncertainty_metrics.json` | ECE, Brier, MC dropout std per model |
+| `shap_random_forest.json` | SHAP explanation for RF |
+| `shap_xgboost.json` | SHAP explanation for XGBoost |
+| `shap_lightgbm.json` | SHAP explanation for LightGBM |
+| `shap_cross_model.json` | Cross-model global SHAP feature importance comparison |
 | `crop_advisory.json` | Per-city ranked suitability scores for 14 Indian crops with 5-yr trajectory penalty |
 | `irrigation_strategy.json` | RSI level, irrigation method, avoid-crop list, optimal sowing window, government schemes |
 | `exploitation_risk_report.json` | ERI score, alert flag, MSP, distress price threshold, alternative crops, procurement links |
@@ -253,8 +281,14 @@ pytest tests/
 | `vegshift-tft-best.ckpt` | Best TFT checkpoint (PyTorch Lightning) |
 | `rf_baseline.pkl` | Random Forest classifier (scikit-learn) |
 | `lr_baseline.pkl` | Logistic Regression classifier |
+| `xgb_baseline.pkl` | XGBoost classifier |
+| `lgb_baseline.pkl` | LightGBM classifier |
 | `scaler.pkl` | StandardScaler fitted on training split |
 | `lstm_baseline.pt` | LSTM state dict (PyTorch) |
+| `lstm_hparams.json` | LSTM hyperparameters (n_features, seq_len) |
+| `deep_models/tcn.pt` | TCN state dict (PyTorch) |
+| `deep_models/transformer.pt` | Vanilla Transformer state dict (PyTorch) |
+| `deep_models/hparams.json` | TCN + Transformer hyperparameters |
 
 ---
 
@@ -290,8 +324,8 @@ Single-factor thresholds (e.g., "rainfall < X mm") generate too many false posit
 **Why 3-year persistence for Koppen transitions?**  
 Classifying a single anomalous year as a permanent zone transition inflates the transition count. Requiring 3+ consecutive years in the new zone filters noise while still detecting real multi-year shifts.
 
-**Why TFT over simpler models?**  
-Crops respond to multi-year patterns (consecutive droughts, gradual aquifer depletion). TFT's 5-year lookback and attention mechanism capture temporal dependencies that cross-sectional models (RF, LR) miss. Baselines are trained alongside for comparison.
+**Why a comparative study across 8 models?**  
+The project includes a full research-grade comparative study: Logistic Regression, Random Forest, XGBoost, LightGBM, LSTM, TCN, Vanilla Transformer, and TFT. This quantifies TFT's advantage over simpler alternatives, tests whether gradient boosting (XGB/LGB) rivals deep learning on this tabular-temporal task, and validates which feature groups (climate, phenology, hydrology, static) drive predictive power via ablation. Uncertainty quantification (MC dropout for neural models, tree variance for RF) adds calibration metrics alongside raw accuracy.
 
 **Why control cities?**  
 Pune, Kolkata, and Mumbai are expected to remain climatically stable and agriculturally viable through 2024. If the pipeline reports CVLEs or deteriorating trends for these cities, the labels or model have a bug — control validation is the last sanity check before trusting any result.
@@ -302,7 +336,7 @@ Pune, Kolkata, and Mumbai are expected to remain climatically stable and agricul
 
 ```
 VegShift/
-  pipeline/          # 17 step scripts (step0 through step17)
+  pipeline/          # 21 step scripts (step0–step17 production + step20–step23 research)
   data/
     raw/             # Original unmodified source files
       climate/       # DS1: daily climate CSV
@@ -317,7 +351,7 @@ VegShift/
   web/
     src/
       pages/         # Landing, Dashboard, CityOverview, CropAdvisor, WaterIrrigation,
-                     # EconomicProtection, Explainability, Reports, Intake
+                     # EconomicProtection, Explainability, ModelComparison, Reports, Intake
       components/    # Layout, Chatbot, RiskMeter, TrendStrip, AdvisoryCard,
                      # ActionSteps, EvidenceCard, GlossaryModal, CitySelector
       state/         # CityContext, FarmerProfileContext

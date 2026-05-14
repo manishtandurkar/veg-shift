@@ -1,4 +1,16 @@
-import type { CityDetail, CoachRequest, CoachResponse, MetaInfo, SummaryResponse } from "./types";
+import type {
+  AblationResults,
+  CityDetail,
+  CoachRequest,
+  CoachResponse,
+  MetaInfo,
+  MetricsTable,
+  ShapCrossModel,
+  StatsTests,
+  SummaryResponse,
+  UncertaintyMetrics,
+  ZoneBreakdown,
+} from "./types";
 
 const DEFAULT_BASE = "http://127.0.0.1:8000";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE;
@@ -47,4 +59,28 @@ export async function fetchCityDetail(city: string): Promise<CityDetail> {
 
 export async function fetchCoachPlan(payload: CoachRequest): Promise<CoachResponse> {
   return postJson<CoachResponse>("/coach", payload, 12000);
+}
+
+export async function fetchComparativeMetrics(): Promise<MetricsTable> {
+  return fetchJson<MetricsTable>("/comparative/metrics");
+}
+
+export async function fetchStatsTests(): Promise<StatsTests> {
+  return fetchJson<StatsTests>("/comparative/stats");
+}
+
+export async function fetchZoneBreakdown(): Promise<ZoneBreakdown> {
+  return fetchJson<ZoneBreakdown>("/comparative/zones");
+}
+
+export async function fetchAblation(): Promise<AblationResults> {
+  return fetchJson<AblationResults>("/comparative/ablation");
+}
+
+export async function fetchUncertainty(): Promise<UncertaintyMetrics> {
+  return fetchJson<UncertaintyMetrics>("/comparative/uncertainty");
+}
+
+export async function fetchShapCrossModel(): Promise<ShapCrossModel> {
+  return fetchJson<ShapCrossModel>("/comparative/shap");
 }
