@@ -17,7 +17,7 @@ const Layout: React.FC = () => {
         <div className="brand">
           <NavLink to="/" style={{ textDecoration: "none" }}>
             <span className="brand-mark">
-              VegShift<sup>AI</sup>
+              VegShift
             </span>
           </NavLink>
           <span className="brand-tag">{t(lang, 'landing.desc')}</span>
