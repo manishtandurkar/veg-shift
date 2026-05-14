@@ -48,6 +48,9 @@ Date          City    Temp_Max  Temp_Min  Rainfall  Wind_Speed
 
 **Preprocessing note:** The raw data has no humidity column. We derived it using a physics-based formula (Steadman's apparent temperature inversion) and validated it against known city averages (Mumbai ~90%, Jaipur ~65%).
 
+<img width="869" height="344" alt="image" src="https://github.com/user-attachments/assets/33f5d088-baa8-4cb7-8166-953c5fb16402" />
+
+
 ---
 
 ### Dataset 2: Groundwater Levels (Subsurface Layer)
