@@ -89,7 +89,7 @@ const CityOverview: React.FC = () => {
                 gap: 8,
               }}>
                 <span style={{ fontWeight: 700, color: "var(--accent-dark)" }}>#{i + 1}</span>
-                <span style={{ fontWeight: 600 }}>{c.crop}</span>
+                <span style={{ fontWeight: 600 }}>{c.crop.charAt(0).toUpperCase() + c.crop.slice(1)}</span>
               </div>
             ))}
           </div>

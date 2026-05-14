@@ -13,6 +13,10 @@ const CROP_ICONS: Record<string, string> = {
   Millet: "🌾", Bajra: "🌾", Jowar: "🌾",
 };
 
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function cropIcon(name: string): string {
   const key = name.toLowerCase();
   for (const [k, v] of Object.entries(CROP_ICONS)) {
@@ -128,7 +132,7 @@ function BreakdownModal({ crop, climateContext, currentZone, onClose }: ModalPro
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: "1.5rem" }}>{cropIcon(crop.crop)}</span>
             <div>
-              <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, textTransform: "capitalize" }}>{crop.crop}</h3>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>{capitalize(crop.crop)}</h3>
               <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
                 <span className="tag" style={{ fontSize: "0.68rem", padding: "2px 7px", textTransform: "capitalize" }}>{crop.season}</span>
                 <span className={`tag ${crop.zone_match ? "risk-low" : "risk-high"}`} style={{ fontSize: "0.68rem", padding: "2px 7px" }}>
@@ -234,7 +238,7 @@ const AdvisoryCard: React.FC<AdvisoryCardProps> = ({ crop, rank, climateContext,
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
               <span style={{ fontSize: "1.1rem" }}>{cropIcon(crop.crop)}</span>
               <h4 style={{ margin: 0, fontSize: "0.98rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {crop.crop}
+                {capitalize(crop.crop)}
               </h4>
             </div>
             <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 4 }}>

@@ -88,7 +88,7 @@ const Landing: React.FC = () => {
                 {city.current_zone ?? "Zone"} · {city.recent_cvle_count} CVLEs (5 yr)
               </p>
               <p style={{ fontSize: "0.78rem", marginBottom: 0 }}>
-                {t(lang, "landing.top")}: {city.top_crops.slice(0, 2).map((c) => c.crop).join(", ")}
+                {t(lang, "landing.top")}: {city.top_crops.slice(0, 2).map((c) => c.crop.charAt(0).toUpperCase() + c.crop.slice(1)).join(", ")}
               </p>
             </div>
           ))}

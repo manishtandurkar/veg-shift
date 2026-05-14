@@ -132,7 +132,7 @@ const Dashboard: React.FC = () => {
                             fontWeight: 500,
                           }}
                         >
-                          {crop.crop} ({crop.score})
+                          {crop.crop.charAt(0).toUpperCase() + crop.crop.slice(1)} ({crop.score})
                         </span>
                       ))}
                     </div>
