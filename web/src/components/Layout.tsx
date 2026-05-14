@@ -57,21 +57,7 @@ const Layout: React.FC = () => {
         <Outlet />
       </main>
 
-      <footer className="app-footer">
-        <div className="footer-sdg">
-          <span className="sdg-badge">SDG 13</span>
-          <span>Climate Action - Zero Hunger - Clean Water</span>
-        </div>
-        <div className="footer-tech">
-          <span>TFT · TCN · Transformer</span>
-          <span>XGBoost · LightGBM · RF</span>
-          <span>SHAP · MC Dropout</span>
-          <span>FastAPI · React 18</span>
-          <span>Köppen-Geiger · FAO GAEZ · CGWB</span>
-        </div>
-      </footer>
-
-      <GlossaryModal open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
+<GlossaryModal open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
       <Chatbot />
     </div>
   );
