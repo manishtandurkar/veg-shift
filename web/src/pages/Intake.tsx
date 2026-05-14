@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCityContext } from "../state/CityContext";
 import { useFarmerProfile } from "../state/FarmerProfileContext";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 const Intake: React.FC = () => {
   const { selectedCity, setSelectedCity, cities, loading, error } = useCityContext();
@@ -20,12 +22,14 @@ const Intake: React.FC = () => {
     navigate("/dashboard");
   };
 
+  const { lang } = useLanguage();
+
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <h1>Farmer Intake</h1>
-          <p>Tell us your crop goals and resources. We will run the analysis for your city.</p>
+          <h1>{t(lang, 'intake.title')}</h1>
+          <p>{t(lang, 'intake.desc')}</p>
         </div>
       </div>
 
@@ -33,13 +37,13 @@ const Intake: React.FC = () => {
         {error && <p className="error">{error}</p>}
         <div className="form-grid">
           <label>
-            City
+            {t(lang, 'nav.city')}
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
               disabled={loading || cities.length === 0}
             >
-              {cities.length === 0 && <option value="">Loading cities...</option>}
+              {cities.length === 0 && <option value="">{t(lang, 'loading')}</option>}
               {cities.map((city) => (
                 <option key={city.city} value={city.city}>
                   {city.city}
@@ -48,61 +52,61 @@ const Intake: React.FC = () => {
             </select>
           </label>
           <label>
-            Crop you want to grow
+            {t(lang, "intake.crop")}
             <input
-              placeholder="e.g. wheat, rice"
+              placeholder={t(lang, "intake.crop.placeholder")}
               value={local.desiredCrop}
               onChange={(e) => update("desiredCrop", e.target.value)}
             />
           </label>
           <label>
-            Budget (INR)
+            {t(lang, "intake.budget")}
             <input
-              placeholder="Approx. budget"
+              placeholder={t(lang, "intake.budget.placeholder")}
               value={local.budgetINR}
               onChange={(e) => update("budgetINR", e.target.value)}
             />
           </label>
           <label>
-            Land size (hectares)
+            {t(lang, "intake.land")}
             <input
-              placeholder="e.g. 1.5"
+              placeholder={t(lang, "intake.land.placeholder")}
               value={local.landSizeHa}
               onChange={(e) => update("landSizeHa", e.target.value)}
             />
           </label>
           <label>
-            Water access
+            {t(lang, "intake.water")}
             <select value={local.waterAccess} onChange={(e) => update("waterAccess", e.target.value)}>
-              <option value="">Select</option>
-              <option value="rainfed">Rainfed only</option>
-              <option value="groundwater">Groundwater wells</option>
-              <option value="canal">Canal irrigation</option>
-              <option value="mixed">Mixed sources</option>
+              <option value="">{t(lang, "intake.select")}</option>
+              <option value="rainfed">{t(lang, "intake.rainfed")}</option>
+              <option value="groundwater">{t(lang, "intake.groundwater")}</option>
+              <option value="canal">{t(lang, "intake.canal")}</option>
+              <option value="mixed">{t(lang, "intake.mixed")}</option>
             </select>
           </label>
           <label>
-            Irrigation method available
+            {t(lang, "intake.irrigation")}
             <select value={local.irrigationType} onChange={(e) => update("irrigationType", e.target.value)}>
-              <option value="">Select</option>
-              <option value="drip">Drip</option>
-              <option value="sprinkler">Sprinkler</option>
-              <option value="flood">Flood</option>
-              <option value="none">No irrigation setup</option>
+              <option value="">{t(lang, "intake.select")}</option>
+              <option value="drip">{t(lang, "intake.drip")}</option>
+              <option value="sprinkler">{t(lang, "intake.sprinkler")}</option>
+              <option value="flood">{t(lang, "intake.flood")}</option>
+              <option value="none">{t(lang, "intake.none")}</option>
             </select>
           </label>
           <label>
-            Preferred season
+            {t(lang, "intake.season")}
             <select value={local.season} onChange={(e) => update("season", e.target.value)}>
-              <option value="">Select</option>
-              <option value="kharif">Kharif</option>
-              <option value="rabi">Rabi</option>
-              <option value="annual">Annual</option>
+              <option value="">{t(lang, "intake.select")}</option>
+              <option value="kharif">{t(lang, "season.kharif")}</option>
+              <option value="rabi">{t(lang, "season.rabi")}</option>
+              <option value="annual">{t(lang, "season.annual")}</option>
             </select>
           </label>
         </div>
         <button type="submit" className="primary" disabled={loading || !selectedCity}>
-          {loading ? "Loading data..." : "Run analysis"}
+          {loading ? t(lang, 'loading') : t(lang, 'dashboard.title')}
         </button>
       </form>
     </section>

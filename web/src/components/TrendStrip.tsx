@@ -1,18 +1,22 @@
 import React from "react";
+import { useLanguage } from "../state/LanguageContext";
+import { t } from "../i18n";
 
 interface TrendStripProps {
   slope: number;
   trend: string;
 }
 
-const CONFIG = {
-  deteriorating: { icon: "↘", label: "Deteriorating", desc: "Viability declining over time" },
-  improving:     { icon: "↗", label: "Improving",     desc: "Viability recovering" },
-  stable:        { icon: "→", label: "Stable",         desc: "No significant trend detected" },
-} as const;
+const CONFIG = (lang: string) => ({
+  deteriorating: { icon: "↘", label: t(lang as any, 'trend.deteriorating.label'), desc: t(lang as any, 'trend.deteriorating.desc') },
+  improving:     { icon: "↗", label: t(lang as any, 'trend.improving.label'),     desc: t(lang as any, 'trend.improving.desc') },
+  stable:        { icon: "→", label: t(lang as any, 'trend.stable.label'),        desc: t(lang as any, 'trend.stable.desc') },
+} as const);
 
 const TrendStrip: React.FC<TrendStripProps> = ({ slope, trend }) => {
-  const cfg = CONFIG[trend as keyof typeof CONFIG] ?? CONFIG.stable;
+  const { lang } = useLanguage();
+  const cfgs = CONFIG(lang);
+  const cfg = (cfgs as any)[trend] ?? cfgs.stable;
 
   return (
     <div className={`trend-strip ${trend}`}>
