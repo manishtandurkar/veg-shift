@@ -4,10 +4,10 @@ import type { CropScore } from "../api/types";
 const RANK_CLASSES = ["gold", "silver", "bronze"];
 
 const CROP_ICONS: Record<string, string> = {
-  wheat: "🌾", rice: "🌾", maize: "🌽", corn: "🌽",
-  cotton: "🪴", sugarcane: "🌿", soybean: "🫘", groundnut: "🥜",
-  tomato: "🍅", onion: "🧅", potato: "🥔", sorghum: "🌾",
-  millet: "🌾", bajra: "🌾", jowar: "🌾",
+  Wheat: "🌾", Rice: "🌾", Maize: "🌽", Corn: "🌽",
+  Cotton: "🪴", Sugarcane: "🌿", Soybean: "🫘", Groundnut: "🥜",
+  Tomato: "🍅", Onion: "🧅", Potato: "🥔", Sorghum: "🌾",
+  Millet: "🌾", Bajra: "🌾", Jowar: "🌾",
 };
 
 function cropIcon(name: string): string {
