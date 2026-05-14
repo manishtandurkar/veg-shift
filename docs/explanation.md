@@ -830,18 +830,17 @@ uvicorn api.app:app --reload --port 8000  # FastAPI backend
 cd web && npm install && npm run dev      # React frontend at localhost:5173
 ```
 
-The web app has nine pages:
+The web app has eight pages:
 
 | Route | What you see |
 |---|---|
 | `/` | Landing — project overview, live risk meters for all 10 cities |
 | `/intake` | Farmer profile form (name, city, land size, crop) |
-| `/dashboard` | ERI gauge, risk meter, advisory cards, trend strip, action steps |
-| `/city` | 25-year climate trajectory, zone transitions, CVLE timeline, evidence |
+| `/dashboard` | ERI gauge, risk meter, advisory cards, trend strip, action steps — gated until intake is submitted |
 | `/crops` | 14-crop ranked suitability table with trajectory penalty scores |
 | `/water` | RSI level, irrigation method, recharge trend, government schemes |
 | `/economic` | ERI component breakdown, MSP alert, distress threshold, procurement links |
-| `/explain` | SHAP feature importance and TFT attention weights |
+| `/explain` | SHAP feature importance (mean absolute value, neutral coloring) and TFT attention weights |
 | `/reports` | Full city report with all outputs in one view |
 
 A **persistent AI chatbot** sits in the bottom-right corner of every page. It uses a TF-IDF knowledge base built from all `docs/` markdown files and key `data/output/` JSON files. Each response includes source attribution badges so you can trace the answer back to the exact document or pipeline output it came from.
