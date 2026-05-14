@@ -156,24 +156,24 @@ const ModelComparison: React.FC = () => {
         >
           {[
             {
-              stat: "0.000043",
-              label: "Brier Score",
-              sub: "16× lower than next best (RF 0.0253). Predictions are probability-calibrated, not just ranked.",
-            },
-            {
-              stat: "ECE 0.006",
-              label: "Calibration Error",
-              sub: "6× better than TCN (0.035), 17× better than LSTM (0.101). Confidence matches actual event rate.",
-            },
-            {
-              stat: "100%",
-              label: "Test Accuracy",
-              sub: "Only model to achieve perfect accuracy on the 2022–2024 hold-out. All other models score 96.7%.",
+              stat: "5-Year",
+              label: "Temporal Lookback",
+              sub: "Learns from the past 5 years per city. RF/XGB see each year as an independent row — no memory of prior drought or depletion sequences.",
             },
             {
               stat: "7 Quantiles",
               label: "Uncertainty Output",
-              sub: "Outputs q0.02–q0.98 intervals, not a single score. Decision-makers see risk bands, not point estimates.",
+              sub: "Outputs q0.02–q0.98 probability bands, not a single score. Farmers and planners see a risk range, not a binary yes/no.",
+            },
+            {
+              stat: "Attention",
+              label: "Temporal Weights",
+              sub: "Learns which past years drove each prediction (saved to tft_attention_weights.json). No other model in this study is interpretable at the timestep level.",
+            },
+            {
+              stat: "3 Streams",
+              label: "Mixed Feature Handling",
+              sub: "Natively separates static (city, crop), time-varying known (climate), and unknown future inputs. Other models flatten everything into one feature vector.",
             },
           ].map(({ stat, label, sub }) => (
             <div
@@ -217,7 +217,7 @@ const ModelComparison: React.FC = () => {
             {
               title: "Why other models fall short",
               body:
-                "RF/XGB achieve high AUC but Brier scores 600× worse than TFT. LSTM has the worst calibration (ECE 0.101) despite similar AUC to LightGBM. Transformer matches RF on AUC but outputs noisy probabilities (Brier 0.044). Only TFT is both accurate and well-calibrated.",
+                "RF, XGB, LGB, and LSTM treat each city-year as an independent sample — they cannot model the progression from early drought stress to full viability collapse over multiple seasons. LSTM tries, but its fixed hidden state bottleneck loses long-range context. TCN and Transformer lack TFT's variable selection and gating, and output point estimates only.",
             },
           ].map(({ title, body }) => (
             <div key={title}>
@@ -344,7 +344,7 @@ const ModelComparison: React.FC = () => {
           </div>
 
           <p style={{ fontSize: "0.8rem", color: "var(--muted)", marginTop: 10, marginBottom: 0 }}>
-            † TFT AUC shows — because its median output never crosses 0.5 on the 2022–2024 test window — the model is intentionally conservative on unseen future years. Its Brier score (0.000043) and accuracy (100%) are the relevant metrics. Use quantile outputs (q0.75–q0.98) for threshold-based AUC evaluation.
+            † TFT AUC and metrics are evaluated on year 2021 only (the validation window used during training: time_idx ≤ 21). Year 2021 has zero CVLE events across all 10 cities, so AUC is mathematically undefined — you need both positive and negative labels to compute a ranking metric. The near-zero Brier score reflects predicting close to 0 on an all-negative slice, not generalisation ability. To evaluate TFT on the 2022–2024 test window, extend the prediction window in step7_tft_predict.py.
           </p>
 
           {/* AUC bar chart (inline) */}
