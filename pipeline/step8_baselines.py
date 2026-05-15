@@ -76,6 +76,7 @@ def main() -> None:
     years_test = years_arr[test_mask]
 
     pred_dir = pathlib.Path(args.predictions_dir)
+    pred_dir_all = pred_dir.parent / "predictions_all"
     metrics: dict[str, dict] = {}
 
     # ------------------------------------------------------------------
@@ -96,6 +97,8 @@ def main() -> None:
         "auc": safe_auc(y_test, rf_prob),
     }
     save_predictions("random_forest", cities_test, years_test, rf_prob, rf_pred, pred_dir)
+    rf_prob_all = rf.predict_proba(scaler.transform(X))[:, 1]
+    save_predictions("random_forest", cities_arr, years_arr, rf_prob_all, (rf_prob_all >= 0.5).astype(int), pred_dir_all)
 
     # ------------------------------------------------------------------
     # Logistic Regression
@@ -109,6 +112,8 @@ def main() -> None:
         "auc": safe_auc(y_test, lr_prob),
     }
     save_predictions("logistic_regression", cities_test, years_test, lr_prob, lr_pred, pred_dir)
+    lr_prob_all = lr.predict_proba(scaler.transform(X))[:, 1]
+    save_predictions("logistic_regression", cities_arr, years_arr, lr_prob_all, (lr_prob_all >= 0.5).astype(int), pred_dir_all)
 
     # ------------------------------------------------------------------
     # XGBoost
@@ -133,6 +138,8 @@ def main() -> None:
         "auc": safe_auc(y_test, xgb_prob),
     }
     save_predictions("xgboost", cities_test, years_test, xgb_prob, xgb_pred, pred_dir)
+    xgb_prob_all = xgb_model.predict_proba(scaler.transform(X))[:, 1]
+    save_predictions("xgboost", cities_arr, years_arr, xgb_prob_all, (xgb_prob_all >= 0.5).astype(int), pred_dir_all)
 
     # ------------------------------------------------------------------
     # LightGBM
@@ -155,6 +162,8 @@ def main() -> None:
         "auc": safe_auc(y_test, lgb_prob),
     }
     save_predictions("lightgbm", cities_test, years_test, lgb_prob, lgb_pred, pred_dir)
+    lgb_prob_all = lgb_model.predict_proba(scaler.transform(X))[:, 1]
+    save_predictions("lightgbm", cities_arr, years_arr, lgb_prob_all, (lgb_prob_all >= 0.5).astype(int), pred_dir_all)
 
     # ------------------------------------------------------------------
     # LSTM
@@ -198,6 +207,11 @@ def main() -> None:
         "seq_len": args.seq_len,
     }
     save_predictions("lstm", city_seq[lstm_test_mask], year_seq[lstm_test_mask], lstm_prob, lstm_pred, pred_dir)
+    lstm.eval()
+    with torch.no_grad():
+        X_seq_all_t = torch.tensor(X_seq)
+        lstm_prob_all = lstm(X_seq_all_t).cpu().numpy()
+    save_predictions("lstm", city_seq, year_seq, lstm_prob_all, (lstm_prob_all >= 0.5).astype(int), pred_dir_all)
 
     # ------------------------------------------------------------------
     # Persist models

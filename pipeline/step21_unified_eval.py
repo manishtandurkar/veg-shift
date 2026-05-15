@@ -64,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Unified comparative evaluation (Step 11).")
     parser.add_argument("--input", default="data/processed/vegshift_master.csv")
     parser.add_argument("--predictions-dir", default="data/output/predictions")
+    parser.add_argument("--predictions-all-dir", default="data/output/predictions_all")
     parser.add_argument("--tft-predictions", default="data/output/tft_predictions.csv")
     parser.add_argument("--output-dir", default="data/output/comparative")
     return parser.parse_args()
@@ -86,6 +87,14 @@ def main() -> None:
 
     if not all_preds:
         raise FileNotFoundError(f"No prediction files in {args.predictions_dir}")
+
+    # Load full-dataset predictions for zone breakdown (all years, not just test)
+    all_preds_full = load_all_predictions(pathlib.Path(args.predictions_all_dir))
+    tft_path = pathlib.Path(args.tft_predictions)
+    if tft_path.exists():
+        tft_full = pd.read_csv(tft_path).rename(columns={"predicted_cvle_score": "prob"})
+        tft_full["pred"] = (tft_full["prob"] >= 0.5).astype(int)
+        all_preds_full["tft"] = tft_full[["city", "year", "prob", "pred"]]
 
     # ------------------------------------------------------------------
     # Unified metrics table
@@ -139,12 +148,11 @@ def main() -> None:
         json.dump(stats_tests, fh, indent=2)
 
     # ------------------------------------------------------------------
-    # Per-Koppen-zone AUC breakdown
+    # Per-Koppen-zone AUC breakdown (uses full dataset for sufficient coverage)
     # ------------------------------------------------------------------
     zone_results: dict[str, dict[str, float | None]] = {}
-    for model_name, pred_df in all_preds.items():
-        if model_name not in metrics_table:
-            continue
+    zone_source = all_preds_full if all_preds_full else all_preds
+    for model_name, pred_df in zone_source.items():
         merged = pred_df.merge(master, on=["city", "year"], how="inner")
         for zone, zone_df in merged.groupby("koppen_zone"):
             zone_key = str(zone)

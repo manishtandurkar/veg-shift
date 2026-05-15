@@ -510,6 +510,9 @@ const ModelComparison: React.FC = () => {
                       </td>
                       <td style={{ padding: "8px 12px", fontSize: "0.78rem", color: "var(--muted)" }}>
                         {u.method.replace(/_/g, " ")}
+                        {u.note && (
+                          <span title={u.note} style={{ marginLeft: 4, cursor: "help", opacity: 0.6 }}>ⓘ</span>
+                        )}
                       </td>
                     </tr>
                     );
