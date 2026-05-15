@@ -33,7 +33,6 @@ const Layout: React.FC = () => {
           <NavLink to="/compare">{t(lang, 'nav.compare')}</NavLink>
           <NavLink to="/techstack">{t(lang, 'nav.techstack')}</NavLink>
           <NavLink to="/reports">{t(lang, 'nav.reports')}</NavLink>
-          <NavLink to="/research">{t(lang, 'nav.research')}</NavLink>
         </nav>
 
         <div className="header-actions">
