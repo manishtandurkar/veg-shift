@@ -34,6 +34,44 @@ const getZoneLabel = (zone?: string) => {
   return ZONE_LABELS[zone] || zone;
 };
 
+const PIPELINE_STEPS = [
+  {
+    icon: "🛰️",
+    color: "blue",
+    stepKey: "pipeline.step1.step",
+    titleKey: "pipeline.step1.title",
+    descKey: "pipeline.step1.desc",
+  },
+  {
+    icon: "🧠",
+    color: "purple",
+    stepKey: "pipeline.step2.step",
+    titleKey: "pipeline.step2.title",
+    descKey: "pipeline.step2.desc",
+  },
+  {
+    icon: "💧",
+    color: "amber",
+    stepKey: "pipeline.step3.step",
+    titleKey: "pipeline.step3.title",
+    descKey: "pipeline.step3.desc",
+  },
+  {
+    icon: "🌾",
+    color: "green",
+    stepKey: "pipeline.step4.step",
+    titleKey: "pipeline.step4.title",
+    descKey: "pipeline.step4.desc",
+  },
+  {
+    icon: "📊",
+    color: "red",
+    stepKey: "pipeline.step5.step",
+    titleKey: "pipeline.step5.title",
+    descKey: "pipeline.step5.desc",
+  },
+];
+
 const Landing: React.FC = () => {
   const { selectedCity, setSelectedCity, cities, loading, error } = useCityContext();
   const { profile, setProfile, markSubmitted } = useFarmerProfile();
@@ -88,20 +126,6 @@ const Landing: React.FC = () => {
           </button>
           {error && <p className="error" style={{ marginTop: 8 }}>{error}</p>}
         </form>
-      </div>
-
-      {/* ── Stats ── */}
-      <div className="stats-row">
-        {STATS.map((s, i) => (
-          <div
-            key={s.labelKey}
-            className="stat-card"
-            style={{ "--delay": `${i * 0.06}s` } as React.CSSProperties}
-          >
-            <span className="stat-number">{s.number}</span>
-            <div className="stat-label">{t(lang, s.labelKey)}</div>
-          </div>
-        ))}
       </div>
 
       {/* ── City grid ── */}

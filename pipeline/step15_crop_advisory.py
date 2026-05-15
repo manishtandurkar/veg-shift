@@ -45,28 +45,47 @@ for city, cdf in df.groupby('city'):
         score = 100.0
 
         # Zone compatibility (30 pts)
-        score -= 0 if zone in spec['zones'] else 30
+        zone_pen = 0 if zone in spec['zones'] else 30
+        score -= zone_pen
 
         # Temperature stress (20 pts)
         temp_margin = spec['max_temp'] - t_max
-        score -= max(0, (5 - temp_margin) * 4) if temp_margin < 5 else 0
+        temp_pen = max(0, (5 - temp_margin) * 4) if temp_margin < 5 else 0
+        score -= temp_pen
 
         # Rainfall adequacy (20 pts)
         water_ratio = rain / spec['water_req']
-        score -= max(0, (1 - water_ratio) * 20)
+        water_pen = max(0, (1 - water_ratio) * 20)
+        score -= water_pen
 
         # Groundwater stress (15 pts)
-        score -= min(15, gw_dep * 0.3 + max(0, depl) * 2)
+        gw_pen = min(15, gw_dep * 0.3 + max(0, depl) * 2)
+        score -= gw_pen
 
         # Trajectory penalty — penalise crops whose future climate fit is deteriorating (15 pts)
-        rain_pen = max(0, -rain_trend * 0.01 * (spec['water_req'] / 500))
-        temp_pen = max(0, temp_trend * 2) if t_max > spec['max_temp'] - 3 else 0
-        gw_pen   = max(0, gw_trend * 1.5)
-        score -= min(15, rain_pen + temp_pen + gw_pen)
+        rain_pen_traj = max(0, -rain_trend * 0.01 * (spec['water_req'] / 500))
+        temp_pen_traj = max(0, temp_trend * 2) if t_max > spec['max_temp'] - 3 else 0
+        gw_pen_traj   = max(0, gw_trend * 1.5)
+        traj_pen = min(15, rain_pen_traj + temp_pen_traj + gw_pen_traj)
+        score -= traj_pen
 
         score = max(0.0, round(score, 2))
-        ranked.append({'crop': crop, 'season': spec['season'],
-                       'score': score, 'zone_match': zone in spec['zones']})
+        ranked.append({
+            'crop': crop, 'season': spec['season'],
+            'score': score, 'zone_match': zone in spec['zones'],
+            'breakdown': {
+                'zone':       round(-zone_pen, 2),
+                'temp':       round(-temp_pen, 2),
+                'water':      round(-water_pen, 2),
+                'gw':         round(-gw_pen, 2),
+                'trajectory': round(-traj_pen, 2),
+            },
+            'crop_spec': {
+                'max_temp':  spec['max_temp'],
+                'water_req': spec['water_req'],
+                'zones':     spec['zones'],
+            }
+        })
 
     ranked.sort(key=lambda x: -x['score'])
     advisory[city] = {
@@ -74,6 +93,12 @@ for city, cdf in df.groupby('city'):
         'rain_trend_5yr': round(rain_trend, 3),
         'temp_trend_5yr': round(temp_trend, 4),
         'gw_trend_5yr':   round(gw_trend, 3),
+        'climate_context': {
+            't_max':          round(float(t_max), 1),
+            'rainfall_mm':    round(float(rain), 0),
+            'gw_depth_mbgl':  round(float(gw_dep), 1),
+            'depletion_rate': round(float(depl), 2),
+        },
         'ranked_crops':   ranked,
     }
 

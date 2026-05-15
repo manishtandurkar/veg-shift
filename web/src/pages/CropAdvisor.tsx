@@ -82,7 +82,13 @@ const CropAdvisor: React.FC = () => {
       {detail && (
         <div className="card-grid">
           {filtered.map((crop, idx) => (
-            <AdvisoryCard key={`${crop.crop}-${idx}`} crop={crop} rank={idx + 1} />
+            <AdvisoryCard
+              key={`${crop.crop}-${idx}`}
+              crop={crop}
+              rank={idx + 1}
+              climateContext={detail.advisory.climate_context}
+              currentZone={detail.advisory.current_zone}
+            />
           ))}
         </div>
       )}

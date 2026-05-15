@@ -13,12 +13,6 @@ interface ActionStepsProps {
   recommendedCrops: string[];
 }
 
-const LANG_OPTIONS: Record<CoachLanguage, string> = {
-  en: "English",
-  hi: "हिन्दी",
-  kn: "ಕನ್ನಡ",
-};
-
 const TEXT = {
   en: {
     title: "Action Steps",
@@ -169,13 +163,8 @@ const ActionSteps: React.FC<ActionStepsProps> = ({
 }) => {
   const { selectedCity } = useCityContext();
   const { profile } = useFarmerProfile();
-  const [language, setLanguage] = useState<CoachLanguage>("en");
-  const { lang: globalLang, setLang } = useLanguage();
-
-  useEffect(() => {
-    // sync local coach language with app language on mount
-    setLanguage(globalLang as CoachLanguage);
-  }, [globalLang]);
+  const { lang: globalLang } = useLanguage();
+  const language = globalLang as CoachLanguage;
   const [coachStatus, setCoachStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [coachResponse, setCoachResponse] = useState<CoachResponse | null>(null);
 
@@ -193,7 +182,7 @@ const ActionSteps: React.FC<ActionStepsProps> = ({
   useEffect(() => {
     setCoachStatus("idle");
     setCoachResponse(null);
-  }, [paramsKey, language]);
+  }, [paramsKey]);
 
   const handleGenerate = async () => {
     if (!selectedCity) {
@@ -224,27 +213,9 @@ const ActionSteps: React.FC<ActionStepsProps> = ({
 
   return (
     <div className="card action-steps">
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-        <div>
-          <h4 style={{ margin: 0 }}>{t.title}</h4>
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted)" }}>{t.aiHint}</p>
-        </div>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "0.75rem", color: "var(--muted)" }}>
-          <span>{t.language}</span>
-          <select
-            value={language}
-            onChange={(event) => {
-              const v = event.target.value as CoachLanguage;
-              setLanguage(v);
-              setLang(v);
-            }}
-            style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid var(--border)" }}
-          >
-            {Object.entries(LANG_OPTIONS).map(([code, label]) => (
-              <option key={code} value={code}>{label}</option>
-            ))}
-          </select>
-        </label>
+      <div>
+        <h4 style={{ margin: 0 }}>{t.title}</h4>
+        <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted)" }}>{t.aiHint}</p>
       </div>
 
       <div style={{ marginTop: 14 }}>
