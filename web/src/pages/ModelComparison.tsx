@@ -273,7 +273,7 @@ const ModelComparison: React.FC = () => {
         <div className="card">
           <SectionHeader
             title="Overall Performance"
-            subtitle="Test set (year ≥ 2022). Precision/Recall/F1 are macro-averaged with F1-optimal threshold per model (handles class imbalance)."
+            subtitle="Test set (year ≥ 2022). Precision/Recall/F1 are macro-averaged with F1-optimal threshold per model (handles class imbalance). TFT uses quantile regression — its AUC reflects output scale, not model quality."
           />
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
@@ -318,6 +318,11 @@ const ModelComparison: React.FC = () => {
                           >
                             Best calibration
                           </span>
+                        )}
+                        {isTFT && (
+                          <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginTop: 3, fontWeight: 400, maxWidth: 260 }}>
+                            Quantile regressor — outputs near-zero on imbalanced data. AUC is not a valid comparison metric here. Evaluate via ECE and Brier instead.
+                          </div>
                         )}
                       </td>
                       <td style={{ padding: "8px 12px", color: "var(--muted)", fontSize: "0.8rem" }}>
@@ -534,32 +539,43 @@ const ModelComparison: React.FC = () => {
           />
           <div style={{ overflowX: "auto" }}>
             {(() => {
-              const modelNames = metrics ? Object.keys(metrics) : [];
+              // Exclude TFT (quantile regressor — near-zero outputs make AUC meaningless)
+              // Exclude zones where ALL models have null (insufficient positive labels)
+              const allModelNames = metrics ? Object.keys(metrics) : [];
+              const modelNames = allModelNames.filter((m) => m !== "tft");
+              const validZones = Object.entries(zones).filter(([, scores]) =>
+                modelNames.some((m) => scores[m] != null)
+              );
               return (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "2px solid var(--border)" }}>
-                      <th style={{ textAlign: "left", padding: "8px 12px" }}>Zone</th>
-                      {modelNames.map((m) => (
-                        <th key={m} style={{ textAlign: "right", padding: "8px 12px" }}>
-                          {MODEL_LABELS[m] ?? m}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(zones).map(([zone, scores]) => (
-                      <tr key={zone} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "8px 12px", fontWeight: 600 }}>{zone}</td>
+                <>
+                  <div style={{ marginBottom: 10, fontSize: "0.8rem", color: "var(--muted)", padding: "8px 12px", background: "rgba(30,42,36,0.04)", borderRadius: 8 }}>
+                    TFT excluded — its quantile regression outputs are near-zero for all samples, making AUC undefined here. Zones with no positive labels (Am, BWh) are also excluded.
+                  </div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--border)" }}>
+                        <th style={{ textAlign: "left", padding: "8px 12px" }}>Zone</th>
                         {modelNames.map((m) => (
-                          <td key={m} style={{ textAlign: "right", padding: "8px 12px" }}>
-                            <MetricBadge value={(scores[m] as number) ?? null} />
-                          </td>
+                          <th key={m} style={{ textAlign: "right", padding: "8px 12px" }}>
+                            {MODEL_LABELS[m] ?? m}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {validZones.map(([zone, scores]) => (
+                        <tr key={zone} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "8px 12px", fontWeight: 600 }}>{zone}</td>
+                          {modelNames.map((m) => (
+                            <td key={m} style={{ textAlign: "right", padding: "8px 12px" }}>
+                              <MetricBadge value={(scores[m] as number) ?? null} />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
               );
             })()}
           </div>
