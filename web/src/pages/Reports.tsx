@@ -152,24 +152,6 @@ const Reports: React.FC = () => {
         </div>
       )}
 
-      {/* Data sources card */}
-      <div className="card">
-        <h3>{t(lang, "reports.sources")}</h3>
-        <div className="card-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-          <div style={{ padding: "14px 16px", background: "rgba(30,42,36,0.05)", borderRadius: 12, border: "1px solid var(--border)" }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>DS1: Climate</div>
-            <div style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Open-Meteo / Kaggle · ~91k daily rows · 10 cities · 2000–2024</div>
-          </div>
-          <div style={{ padding: "14px 16px", background: "rgba(30,42,36,0.05)", borderRadius: 12, border: "1px solid var(--border)" }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>DS2: Groundwater</div>
-            <div style={{ fontSize: "0.8rem", color: "var(--muted)" }}>CGWB Aquifer Atlas · Quarterly levels · Jan/May/Aug/Nov · 2000–2022</div>
-          </div>
-          <div style={{ padding: "14px 16px", background: "rgba(30,42,36,0.05)", borderRadius: 12, border: "1px solid var(--border)" }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>DS3: Crop suitability</div>
-            <div style={{ fontSize: "0.8rem", color: "var(--muted)" }}>FAO GAEZ v4 · 6 GeoTIFF rasters · Agro-ecological zone classification</div>
-          </div>
-        </div>
-      </div>
     </section>
   );
 };
