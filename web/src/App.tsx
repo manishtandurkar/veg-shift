@@ -25,6 +25,7 @@ const App: React.FC = () => {
         <Route path="explain" element={<Explainability />} />
         <Route path="compare" element={<ModelComparison />} />
         <Route path="techstack" element={<TechStack />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
