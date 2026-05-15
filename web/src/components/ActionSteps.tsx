@@ -1,8 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { fetchCoachPlan } from "../api/client";
-import type { CoachLanguage, CoachResponse } from "../api/types";
-import { useCityContext } from "../state/CityContext";
-import { useFarmerProfile } from "../state/FarmerProfileContext";
+import React, { useMemo } from "react";
+import type { CoachLanguage } from "../api/types";
 import { useLanguage } from "../state/LanguageContext";
 import { capitalizeWords } from "../utils/text";
 
@@ -16,14 +13,7 @@ interface ActionStepsProps {
 const TEXT = {
   en: {
     title: "Action Steps",
-    language: "Language",
     specific: "Specific actions",
-    aiCoach: "AI Coach",
-    aiHint: "Personalized steps using an LLM.",
-    generate: "Generate AI plan",
-    generating: "Generating AI plan...",
-    unavailable: "AI coach unavailable — showing rule-based plan.",
-    noCity: "Select a city to generate an AI plan.",
     steps: {
       irrigationCheck: "Confirm water source and set up {method} for this season.",
       irrigationDrip: "For drip: install filters, add a pressure regulator, and check emitters.",
@@ -44,14 +34,7 @@ const TEXT = {
   },
   hi: {
     title: "कार्य योजना",
-    language: "भाषा",
     specific: "ठोस कदम",
-    aiCoach: "AI सलाहकार",
-    aiHint: "LLM से व्यक्तिगत सुझाव।",
-    generate: "AI योजना बनाएं",
-    generating: "AI योजना बनाई जा रही है...",
-    unavailable: "AI सलाहकार उपलब्ध नहीं है — नियम-आधारित योजना दिखा रहे हैं।",
-    noCity: "AI योजना के लिए कोई शहर चुनें।",
     steps: {
       irrigationCheck: "अपने जल स्रोत की जांच करें और इस मौसम के लिए {method} व्यवस्था पक्की करें।",
       irrigationDrip: "ड्रिप के लिए: फ़िल्टर, प्रेशर रेगुलेटर लगाएं और एमिटर जांचें।",
@@ -72,14 +55,7 @@ const TEXT = {
   },
   kn: {
     title: "ಕಾರ್ಯ ಕ್ರಮ",
-    language: "ಭಾಷೆ",
     specific: "ಸ್ಪಷ್ಟ ಕ್ರಮಗಳು",
-    aiCoach: "AI ಸಲಹೆಗಾರ",
-    aiHint: "LLM ಮೂಲಕ ವೈಯಕ್ತಿಕ ಸಲಹೆಗಳು.",
-    generate: "AI ಯೋಜನೆ ತಯಾರಿಸಿ",
-    generating: "AI ಯೋಜನೆ ತಯಾರಲಾಗುತ್ತಿದೆ...",
-    unavailable: "AI ಸಲಹೆಗಾರ ಲಭ್ಯವಿಲ್ಲ — ನಿಯಮಾಧಾರಿತ ಯೋಜನೆ ತೋರಿಸಲಾಗುತ್ತಿದೆ.",
-    noCity: "AI ಯೋಜನೆಗಾಗಿ ನಗರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
     steps: {
       irrigationCheck: "ನಿಮ್ಮ ನೀರಿನ ಮೂಲವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಈ ಋತುವಿಗೆ {method} ವ್ಯವಸ್ಥೆ ಖಚಿತಪಡಿಸಿ.",
       irrigationDrip: "ಡ್ರಿಪ್‌ಗೆ: ಫಿಲ್ಟರ್, ಒತ್ತಡ ನಿಯಂತ್ರಕ ಹಾಕಿ ಮತ್ತು ಎಮಿಟರ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
@@ -161,12 +137,8 @@ const ActionSteps: React.FC<ActionStepsProps> = ({
   avoidCrops,
   recommendedCrops,
 }) => {
-  const { selectedCity } = useCityContext();
-  const { profile } = useFarmerProfile();
   const { lang: globalLang } = useLanguage();
   const language = globalLang as CoachLanguage;
-  const [coachStatus, setCoachStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [coachResponse, setCoachResponse] = useState<CoachResponse | null>(null);
 
   const t = TEXT[language];
   const ruleSteps = useMemo(
@@ -174,50 +146,9 @@ const ActionSteps: React.FC<ActionStepsProps> = ({
     [irrigationMethod, sowingWindow, avoidCrops, recommendedCrops, language]
   );
 
-  const paramsKey = useMemo(
-    () => JSON.stringify({ irrigationMethod, sowingWindow, avoidCrops, recommendedCrops, profile, selectedCity }),
-    [irrigationMethod, sowingWindow, avoidCrops, recommendedCrops, profile, selectedCity]
-  );
-
-  useEffect(() => {
-    setCoachStatus("idle");
-    setCoachResponse(null);
-  }, [paramsKey]);
-
-  const handleGenerate = async () => {
-    if (!selectedCity) {
-      setCoachStatus("error");
-      return;
-    }
-    setCoachStatus("loading");
-    try {
-      const response = await fetchCoachPlan({
-        city: selectedCity,
-        language,
-        irrigation_method: irrigationMethod,
-        sowing_window: sowingWindow,
-        avoid_crops: avoidCrops,
-        recommended_crops: recommendedCrops,
-        profile,
-      });
-      setCoachResponse(response);
-      setCoachStatus("ready");
-    } catch {
-      setCoachStatus("error");
-      setCoachResponse(null);
-    }
-  };
-
-  const coachSteps = coachResponse?.mode === "llm" ? coachResponse.steps : null;
-  const coachFallback = coachStatus === "ready" && coachResponse?.mode === "rule-based";
-
   return (
     <div className="card action-steps">
-      <div>
-        <h4 style={{ margin: 0 }}>{t.title}</h4>
-        <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--muted)" }}>{t.aiHint}</p>
-      </div>
-
+      <h4 style={{ margin: 0 }}>{t.title}</h4>
       <div style={{ marginTop: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{t.specific}</div>
         <ul>
@@ -225,35 +156,6 @@ const ActionSteps: React.FC<ActionStepsProps> = ({
             <li key={`${idx}-${step.slice(0, 12)}`}>{step}</li>
           ))}
         </ul>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ fontWeight: 700 }}>{t.aiCoach}</div>
-          <button
-            type="button"
-            className="primary"
-            onClick={handleGenerate}
-            disabled={coachStatus === "loading" || !selectedCity}
-            style={{ padding: "6px 14px", fontSize: "0.8rem" }}
-          >
-            {coachStatus === "loading" ? t.generating : t.generate}
-          </button>
-        </div>
-
-        {(coachStatus === "error" || coachFallback) && (
-          <p style={{ marginTop: 8, fontSize: "0.8rem", color: "var(--muted)" }}>
-            {selectedCity ? t.unavailable : t.noCity}
-          </p>
-        )}
-
-        {coachSteps && (
-          <ul style={{ marginTop: 8 }}>
-            {coachSteps.map((step, idx) => (
-              <li key={`${idx}-${step.slice(0, 12)}`}>{step}</li>
-            ))}
-          </ul>
-        )}
       </div>
     </div>
   );
