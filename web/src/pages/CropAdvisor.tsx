@@ -5,6 +5,24 @@ import AdvisoryCard from "../components/AdvisoryCard";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
 
+const ZONE_LABELS: Record<string, string> = {
+  Af: 'Tropical Rainforest (Af)',
+  Am: 'Tropical Monsoon (Am)',
+  Aw: 'Tropical Savanna (Aw)',
+  Csa: 'Hot-Summer Mediterranean (Csa)',
+  Csb: 'Warm-Summer Mediterranean (Csb)',
+  Cwa: 'Humid Subtropical, Dry Winter (Cwa)',
+  Cwb: 'Subtropical Highland, Monsoon (Cwb)',
+  Cfa: 'Humid Subtropical (Cfa)',
+  Cfb: 'Oceanic (Cfb)',
+  BWh: 'Hot Desert (BWh)',
+  BWk: 'Cold Desert (BWk)',
+  BSh: 'Hot Semi-Arid (BSh)',
+  BSk: 'Cold Semi-Arid (BSk)',
+};
+
+const getZoneLabel = (zone?: string) => zone ? (ZONE_LABELS[zone] ?? zone) : '';
+
 const CropAdvisor: React.FC = () => {
   const { selectedCity } = useCityContext();
   const { detail, loading, error } = useCityDetail(selectedCity);
@@ -21,7 +39,7 @@ const CropAdvisor: React.FC = () => {
           <h1>{t(lang, 'nav.crops')}</h1>
           <p>{t(lang, "crops.desc")}</p>
         </div>
-        {selectedCity && <span className="tag">{selectedCity} · {detail?.advisory.current_zone}</span>}
+        {selectedCity && <span className="tag">{selectedCity} · {getZoneLabel(detail?.advisory.current_zone)}</span>}
       </div>
 
       {/* Scoring methodology */}

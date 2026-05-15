@@ -3,7 +3,6 @@ import { useCityContext } from "../state/CityContext";
 import { useCityDetail } from "../hooks/useCityDetail";
 import { useFarmerProfile } from "../state/FarmerProfileContext";
 import AdvisoryCard from "../components/AdvisoryCard";
-import EvidenceCard from "../components/EvidenceCard";
 import { capitalizeWords } from "../utils/text";
 
 const EriGauge: React.FC<{ value: number; alert: boolean }> = ({ value, alert }) => {
@@ -307,15 +306,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Evidence */}
-          <div className="section">
-            <h2>Local evidence</h2>
-            <div className="card-grid">
-              {detail.evidence.map((item, idx) => (
-                <EvidenceCard key={`${item.title}-${idx}`} item={item} />
-              ))}
-            </div>
-          </div>
         </>
       )}
     </section>
