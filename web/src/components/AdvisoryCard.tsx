@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { CropScore, ClimateContext } from "../api/types";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
+import { capitalizeWords } from "../utils/text";
 
 const RANK_CLASSES = ["gold", "silver", "bronze"];
 

@@ -6,6 +6,7 @@ import RiskMeter from "../components/RiskMeter";
 import TrendStrip from "../components/TrendStrip";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
+import { capitalizeWords } from "../utils/text";
 
 const CityOverview: React.FC = () => {
   const { selectedCity, cities } = useCityContext();
@@ -89,7 +90,7 @@ const CityOverview: React.FC = () => {
                 gap: 8,
               }}>
                 <span style={{ fontWeight: 700, color: "var(--accent-dark)" }}>#{i + 1}</span>
-                <span style={{ fontWeight: 600 }}>{c.crop.charAt(0).toUpperCase() + c.crop.slice(1)}</span>
+                <span style={{ fontWeight: 600 }}>{capitalizeWords(c.crop)}</span>
               </div>
             ))}
           </div>

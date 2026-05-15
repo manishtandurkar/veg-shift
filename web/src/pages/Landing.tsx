@@ -1,9 +1,38 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCityContext } from "../state/CityContext";
+import { useFarmerProfile } from "../state/FarmerProfileContext";
 import RiskMeter from "../components/RiskMeter";
 import { useLanguage } from "../state/LanguageContext";
 import { t } from "../i18n";
+import { capitalizeWords } from "../utils/text";
+
+const STATS = [
+  { number: "10", labelKey: "stats.cities" },
+  { number: "25", labelKey: "stats.years" },
+  { number: "14", labelKey: "stats.crops" },
+];
+
+const ZONE_LABELS: Record<string, string> = {
+  Af: 'Tropical rainforest (Af)',
+  Am: 'Tropical monsoon (Am)',
+  Aw: 'Tropical savanna (Aw)',
+  Csa: 'Hot-summer Mediterranean (Csa)',
+  Csb: 'Warm-summer Mediterranean (Csb)',
+  Cwa: 'Humid subtropical, dry winter (Cwa)',
+  Cwb: 'Subtropical highland, monsoon (Cwb)',
+  Cfa: 'Humid subtropical (Cfa)',
+  Cfb: 'Oceanic (Cfb)',
+  BWh: 'Hot desert (BWh)',
+  BWk: 'Cold desert (BWk)',
+  BSh: 'Hot semi-arid (BSh)',
+  BSk: 'Cold semi-arid (BSk)',
+};
+
+const getZoneLabel = (zone?: string) => {
+  if (!zone) return 'Zone';
+  return ZONE_LABELS[zone] || zone;
+};
 
 const PIPELINE_STEPS = [
   {
@@ -44,9 +73,19 @@ const PIPELINE_STEPS = [
 ];
 
 const Landing: React.FC = () => {
-  const { cities } = useCityContext();
+  const { selectedCity, setSelectedCity, cities, loading, error } = useCityContext();
+  const { profile, setProfile, markSubmitted } = useFarmerProfile();
   const { lang } = useLanguage();
   const navigate = useNavigate();
+  const [localCrop, setLocalCrop] = useState(profile.desiredCrop || "");
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!localCrop || !selectedCity) return;
+    setProfile({ desiredCrop: capitalizeWords(localCrop) });
+    markSubmitted();
+    navigate("/dashboard");
+  };
 
   return (
     <section className="page">
@@ -55,11 +94,38 @@ const Landing: React.FC = () => {
         <div className="hero-eyebrow">{t(lang, "landing.eyebrow")}</div>
         <h1>{t(lang, 'landing.title')}</h1>
         <p>{t(lang, 'landing.desc')}</p>
-        <div className="hero-actions">
-          <Link className="primary" to="/intake">→ {t(lang, 'intake.title')}</Link>
-          <Link className="secondary" to="/city">{t(lang, 'nav.city')}</Link>
-          <Link className="secondary" to="/explain">{t(lang, 'nav.explain')}</Link>
-        </div>
+        <form className="hero-form" onSubmit={handleSubmit}>
+          <div className="hero-form-row">
+            <label htmlFor="crop-input">What crop are you growing currently?</label>
+            <input
+              id="crop-input"
+              type="text"
+              placeholder="e.g. Wheat, Rice, Cotton"
+              value={localCrop}
+              onChange={(e) => setLocalCrop(e.target.value)}
+            />
+          </div>
+          <div className="hero-form-row">
+            <label htmlFor="city-select">Where is your farm located?</label>
+            <select
+              id="city-select"
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              disabled={loading || cities.length === 0}
+            >
+              <option value="">Select your city...</option>
+              {cities.map((city) => (
+                <option key={city.city} value={city.city}>
+                  {city.city}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="primary" disabled={!localCrop || !selectedCity || loading}>
+            Go to decision dashboard
+          </button>
+          {error && <p className="error" style={{ marginTop: 8 }}>{error}</p>}
+        </form>
       </div>
 
       {/* ── City grid ── */}
@@ -79,89 +145,23 @@ const Landing: React.FC = () => {
             >
               <div className="card-header">
                 <h3 style={{ margin: 0, fontSize: "1rem" }}>{city.city}</h3>
-                <span className={`tag risk-${city.risk_level}`}>
-                  {t(lang, `risk.${city.risk_level}`)}
-                </span>
               </div>
-              <RiskMeter level={city.risk_level} />
-              <p style={{ fontSize: "0.78rem", marginTop: 8, marginBottom: 0 }}>
-                {city.current_zone ?? "Zone"} · {city.recent_cvle_count} CVLEs (5 yr)
+              <p style={{ fontSize: "0.78rem", marginTop: 8, marginBottom: 4 }}>
+                Current climate is becoming hotter and drier.
               </p>
-              <p style={{ fontSize: "0.78rem", marginBottom: 0 }}>
-                {t(lang, "landing.top")}: {city.top_crops.slice(0, 2).map((c) => c.crop.charAt(0).toUpperCase() + c.crop.slice(1)).join(", ")}
+              <p style={{ fontSize: "0.78rem", margin: "0 0 4px" }}>
+                Suitable crops for future:
+              </p>
+              <ul style={{ fontSize: "0.78rem", margin: "0 0 8px 16px", paddingLeft: 16 }}>
+                {city.top_crops.slice(0, 2).map((c) => (
+                  <li key={c.crop}>{capitalizeWords(c.crop)}</li>
+                ))}
+              </ul>
+              <p style={{ fontSize: "0.78rem", margin: 0 }}>
+                Water stress: Moderate
               </p>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* ── How it works ── */}
-      <div className="pipeline-section">
-        <div className="section-head">
-          <h2>{t(lang, "landing.how")}</h2>
-          <span className="tag">{t(lang, "landing.pipeline_tag")}</span>
-        </div>
-        <div className="pipeline-steps">
-          {PIPELINE_STEPS.map((step, i) => (
-            <div
-              key={step.stepKey}
-              className="pipeline-step"
-              style={{ "--delay": `${i * 0.07}s` } as React.CSSProperties}
-            >
-              <div className={`step-icon ${step.color}`}>{step.icon}</div>
-              <div className="step-number">{t(lang, step.stepKey)}</div>
-              <h4>{t(lang, step.titleKey)}</h4>
-              <p>{t(lang, step.descKey)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Technology stack ── */}
-      <div className="card tech-stack">
-        <h3>{t(lang, "landing.tech")}</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>ML & Data</div>
-            <div className="tech-chips">
-              <span className="tech-chip highlight">Temporal Fusion Transformer</span>
-              <span className="tech-chip highlight">SHAP Explainability</span>
-              <span className="tech-chip">PyTorch Lightning</span>
-              <span className="tech-chip">scikit-learn</span>
-              <span className="tech-chip">pandas / numpy</span>
-              <span className="tech-chip">rasterio (GeoTIFF)</span>
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Backend & API</div>
-            <div className="tech-chips">
-              <span className="tech-chip highlight">FastAPI</span>
-              <span className="tech-chip">Uvicorn</span>
-              <span className="tech-chip">TF-IDF Chatbot</span>
-              <span className="tech-chip">Plotly / Dash</span>
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Frontend</div>
-            <div className="tech-chips">
-              <span className="tech-chip highlight">React 18 + TypeScript</span>
-              <span className="tech-chip">Vite</span>
-              <span className="tech-chip">React Router v6</span>
-              <span className="tech-chip">Context API</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── SDG alignment ── */}
-      <div className="mission">
-        <h2>{t(lang, "landing.why")}</h2>
-        <p>{t(lang, "landing.why_desc")}</p>
-        <p style={{ marginBottom: 0 }}>{t(lang, "landing.sdg_target")}</p>
-        <div className="sdg-badges">
-          <span className="sdg-chip green">SDG 13 · Climate Action</span>
-          <span className="sdg-chip blue">SDG 6 · Clean Water</span>
-          <span className="sdg-chip yellow">SDG 2 · Zero Hunger</span>
         </div>
       </div>
     </section>

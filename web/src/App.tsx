@@ -2,8 +2,8 @@ import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
-import Intake from "./pages/Intake";
 import Dashboard from "./pages/Dashboard";
+import TechStack from "./pages/TechStack";
 
 import CropAdvisor from "./pages/CropAdvisor";
 import WaterIrrigation from "./pages/WaterIrrigation";
@@ -18,7 +18,6 @@ const App: React.FC = () => {
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<Landing />} />
-        <Route path="intake" element={<Intake />} />
         <Route path="dashboard" element={<Dashboard />} />
 
         <Route path="crops" element={<CropAdvisor />} />
@@ -26,7 +25,7 @@ const App: React.FC = () => {
         <Route path="economic" element={<EconomicProtection />} />
         <Route path="explain" element={<Explainability />} />
         <Route path="compare" element={<ModelComparison />} />
-        <Route path="reports" element={<Reports />} />
+        <Route path="techstack" element={<TechStack />} />
         <Route path="research" element={<ResearchGaps />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

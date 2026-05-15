@@ -291,16 +291,6 @@ button.ghost:hover { background: var(--accent-light); }
 .tag.risk-high { background: rgba(178, 58, 36, 0.12); color: var(--risk-high); }
 
 /* ─── Hero (Landing) ─────────────────────────────────────────────── */
-.hero {
-  position: relative;
-  padding: 64px 56px;
-  border-radius: var(--radius);
-  background: linear-gradient(145deg, rgba(255,255,255,0.94) 0%, rgba(216,228,208,0.65) 100%);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
 .hero::before {
   content: "";
   position: absolute;
@@ -361,6 +351,56 @@ button.ghost:hover { background: var(--accent-light); }
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 28px;
+}
+
+.hero {
+  position: relative;
+  padding: 80px 72px;
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, rgba(255,255,255,0.94) 0%, rgba(216,228,208,0.65) 100%);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.hero > p {
+  font-size: 1.05rem;
+  max-width: 720px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.hero-form {
+  margin-top: 32px;
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+}
+
+.hero-form-row {
+  display: grid;
+  gap: 10px;
+}
+
+.hero-form-row label {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.hero-form-row input,
+.hero-form-row select {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.hero-form button {
+  width: max-content;
+  min-width: 240px;
+  padding: 14px 26px;
 }
 
 /* ─── Stats row ──────────────────────────────────────────────────── */
@@ -614,7 +654,18 @@ button.ghost:hover { background: var(--accent-light); }
 .risk-text {
   display: flex;
   justify-content: space-between;
-  font-size: 0.82rem;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+}
+
+.risk-text span {
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+.risk-text strong {
+  font-size: 0.86rem;
 }
 
 .risk-low .risk-text strong { color: var(--risk-low); }

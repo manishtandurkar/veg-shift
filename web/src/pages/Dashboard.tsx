@@ -4,6 +4,7 @@ import { useCityDetail } from "../hooks/useCityDetail";
 import { useFarmerProfile } from "../state/FarmerProfileContext";
 import AdvisoryCard from "../components/AdvisoryCard";
 import EvidenceCard from "../components/EvidenceCard";
+import { capitalizeWords } from "../utils/text";
 
 const EriGauge: React.FC<{ value: number; alert: boolean }> = ({ value, alert }) => {
   const r = 32;
@@ -60,12 +61,12 @@ const Dashboard: React.FC = () => {
       <section className="page">
         <div className="card" style={{ textAlign: "center", padding: 48 }}>
           <div style={{ fontSize: "3rem", marginBottom: 16 }}>🌾</div>
-          <h3>Complete the intake form first</h3>
+          <h3>Provide crop and city on the home page</h3>
           <p>
-            The decision dashboard is personalised to your farm profile — city and crop. Fill in the intake form to unlock your analysis.
+            The decision dashboard is personalised to your farm profile — city and crop. Enter your current crop and location on the home page to unlock the analysis.
           </p>
-          <a className="primary" href="/intake" style={{ marginTop: 16, display: "inline-block" }}>
-            → Start intake
+          <a className="primary" href="/" style={{ marginTop: 16, display: "inline-block" }}>
+            → Go to home
           </a>
         </div>
       </section>
@@ -105,14 +106,14 @@ const Dashboard: React.FC = () => {
 
                 {isRecommended && (
                   <p style={{ margin: 0, padding: "12px 0", borderTop: "1px solid #eee", color: "#555" }}>
-                    Good news! <strong>{profile.desiredCrop}</strong> is ranked <strong>#{rank}</strong> among recommended crops for {selectedCity}.
+                    Good news! <strong>{capitalizeWords(profile.desiredCrop)}</strong> is ranked <strong>#{rank}</strong> among recommended crops for {selectedCity}.
                     It's well-suited to current climate conditions.
                   </p>
                 )}
 
                 {!isRecommended && (
                   <p style={{ margin: 0, padding: "12px 0", borderTop: "1px solid #eee", color: "#d32f2f" }}>
-                    <strong>{profile.desiredCrop}</strong> is showing viability challenges in {selectedCity} over the next 5 years.
+                    <strong>{capitalizeWords(profile.desiredCrop)}</strong> is showing viability challenges in {selectedCity} over the next 5 years.
                     Consider switching to recommended alternatives below.
                   </p>
                 )}
@@ -132,7 +133,7 @@ const Dashboard: React.FC = () => {
                             fontWeight: 500,
                           }}
                         >
-                          {crop.crop.charAt(0).toUpperCase() + crop.crop.slice(1)} ({crop.score})
+                          {capitalizeWords(crop.crop)} ({crop.score})
                         </span>
                       ))}
                     </div>
@@ -251,7 +252,7 @@ const Dashboard: React.FC = () => {
                   <strong>Avoid:</strong>
                   <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem", color: "#d32f2f" }}>
                     {detail.irrigation.avoid_crops && detail.irrigation.avoid_crops.length > 0
-                      ? detail.irrigation.avoid_crops.join(", ") + " (too water-thirsty)"
+                      ? detail.irrigation.avoid_crops.map(capitalizeWords).join(", ") + " (too water-thirsty)"
                       : "No restrictions now"}
                   </p>
                 </div>
@@ -260,7 +261,7 @@ const Dashboard: React.FC = () => {
                   <strong style={{ color: "#2e7d32" }}>Priority:</strong>
                   <p style={{ margin: "6px 0 0 0", fontSize: "0.9rem", color: "#2e7d32" }}>
                     {detail.irrigation.recommended_crops && detail.irrigation.recommended_crops.length > 0
-                      ? detail.irrigation.recommended_crops.slice(0, 3).join(", ")
+                      ? detail.irrigation.recommended_crops.slice(0, 3).map(capitalizeWords).join(", ")
                       : "Cotton, Sorghum, Groundnut"}
                   </p>
                 </div>
