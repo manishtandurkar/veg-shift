@@ -273,7 +273,7 @@ const ModelComparison: React.FC = () => {
         <div className="card">
           <SectionHeader
             title="Overall Performance"
-            subtitle="Test set (year ≥ 2022). TFT AUC reflects conservative calibration — see Calibration Score below."
+            subtitle="Test set (year ≥ 2022). Precision/Recall/F1 are macro-averaged with F1-optimal threshold per model (handles class imbalance)."
           />
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>

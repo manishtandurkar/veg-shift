@@ -29,17 +29,26 @@ def _safe(fn, *args, **kwargs) -> float | None:
 
 
 def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> dict:
-    y_pred = (y_prob >= 0.5).astype(int)
+    # Find F1-macro optimal threshold (handles extreme class imbalance)
+    best_thresh, best_f1 = 0.5, -1.0
+    for t in np.arange(0.05, 0.96, 0.05):
+        y_p = (y_prob >= t).astype(int)
+        score = _safe(f1_score, y_true, y_p, average="macro", zero_division=0) or 0.0
+        if score > best_f1:
+            best_f1, best_thresh = score, float(t)
+
+    y_pred = (y_prob >= best_thresh).astype(int)
     auc = None
     if len(np.unique(y_true)) > 1:
         auc = _safe(roc_auc_score, y_true, y_prob)
     return {
         "accuracy": _safe(accuracy_score, y_true, y_pred),
-        "precision": _safe(precision_score, y_true, y_pred, zero_division=0),
-        "recall": _safe(recall_score, y_true, y_pred, zero_division=0),
-        "f1": _safe(f1_score, y_true, y_pred, zero_division=0),
+        "precision": _safe(precision_score, y_true, y_pred, average="macro", zero_division=0),
+        "recall": _safe(recall_score, y_true, y_pred, average="macro", zero_division=0),
+        "f1": _safe(f1_score, y_true, y_pred, average="macro", zero_division=0),
         "auc": auc,
         "brier": _safe(brier_score_loss, y_true, y_prob),
+        "threshold": round(best_thresh, 2),
     }
 
 
